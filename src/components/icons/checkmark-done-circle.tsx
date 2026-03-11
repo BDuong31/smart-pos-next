@@ -1,0 +1,30 @@
+import { useTheme } from "next-themes";
+
+export default function CheckmardDoneCircleRegular() {
+    const { theme } = useTheme();
+    return (
+        <svg
+            className="dark:stroke-[#F8F8F8] stroke-[#1F1F1F]"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24" height="24" viewBox="0 0 512 512"
+        >
+            <path fill="none" strokeMiterlimit={10} strokeWidth={32} d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z"></path>
+	        <path fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth={32} d="M368 192L256.13 320l-47.95-48m-16.23 48L144 272m161.71-80l-51.55 59"></path>
+        </svg>
+    )
+}
+
+export function CheckmardDoneCircleBold() {
+    const { theme } = useTheme();
+    return (
+        <svg
+            className="dark:stroke-[#F8F8F8] stroke-[#1F1F1F]"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24" height="24" viewBox="0 0 512 512"
+        >
+            <path 
+                d="M258.9 48C141.92 46.42 46.42 141.92 48 258.9c1.56 112.19 92.91 203.54 205.1 205.1c117 1.6 212.48-93.9 210.88-210.88C462.44 140.91 371.09 49.56 258.9 48m-16.79 192.47l51.55-59a16 16 0 0 1 24.1 21.06l-51.55 59a16 16 0 1 1-24.1-21.06m-38.86 90.85a16 16 0 0 1-22.62 0l-47.95-48a16 16 0 1 1 22.64-22.62l48 48a16 16 0 0 1-.07 22.62m176.8-128.79l-111.88 128a16 16 0 0 1-11.51 5.47h-.54a16 16 0 0 1-11.32-4.69l-47.94-48a16 16 0 1 1 22.64-22.62l29.8 29.83a8 8 0 0 0 11.68-.39l95-108.66a16 16 0 0 1 24.1 21.06Z"
+            />
+        </svg>
+    );
+}

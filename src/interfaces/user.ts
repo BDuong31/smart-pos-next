@@ -1,0 +1,15 @@
+export interface IUserProfile {
+    id: string,
+    username: string,
+    email: string,
+    fullName: string,
+    birthday: Date,
+    role: string,
+    rankId: string | null,
+    mongoUserId: string | null,
+    currentPoint: number,
+    status: string,
+    fcmToken: string | null,
+    createdAt: Date,
+    updatedAt: Date,
+}
