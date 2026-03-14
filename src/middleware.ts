@@ -11,6 +11,7 @@ export function middleware(request: NextRequest) {
   const isAdminSubdomain = hostHeader.startsWith('admin.');
 
   if (isAdminSubdomain) {
+    console.log('Admin subdomain detected. Rewriting URL to /admin.');
     url.pathname = `/admin${url.pathname}`;
     return NextResponse.rewrite(url);
   }

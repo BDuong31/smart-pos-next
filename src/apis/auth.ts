@@ -2,13 +2,13 @@ import { IApiResponse } from "@/interfaces/api-response";
 import axiosInstance, { endpoints } from "@/utils/axios";
 
 interface LoginParams {
-    email: string;
+    username: string;
     password: string;
 }
 
 interface RegisterParams {
     username: string;
-    fullname: string;
+    fullName: string;
     birthday: Date;
     email: string;
     password: string;
@@ -29,9 +29,9 @@ interface introspectParams {
     token: string;
 }
 
-interface IntrospectResponse {
-    sub: string;
-    role: string;
+interface introspectResponse {
+  sub: string;
+  role: string;
 }
 
 // Đăng ký tài khoản mới
@@ -63,7 +63,7 @@ export const verifyAccount = async(token: string, otp: string): Promise<void> =>
 }
 
 // Đăng nhập
-export const login = async (params: LoginParams): Promise<IApiResponse<LoginResponse>> => {
+export const login = async (params: LoginParams): Promise<LoginResponse> => {
     const response = await axiosInstance.post(endpoints.auth.authenticate, params);
 
     return response.data;
@@ -91,3 +91,7 @@ export const forgotPassword = async (email: string): Promise<IApiResponse<Regist
 // Đăng xuất
 
 // Kiểm tra token hợp lệ
+export const introspect = async (params: introspectParams ): Promise<introspectResponse> => {
+  const response = await axiosInstance.post(endpoints.auth.introspect, params)
+  return response.data.data
+}

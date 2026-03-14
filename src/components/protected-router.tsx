@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-
-import { useAuth } from '@/context/auth-context';
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+// import { useAuth } from '@/context/auth-context';
 
 //-----------------------------------------------------------------------------------------------
 
@@ -12,7 +13,10 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const isAuthenticated = useSelector(
+        (state: RootState) => state.auth.isAuthenticated
+  );
+  
   const router = useRouter();
 
   React.useEffect(() => {

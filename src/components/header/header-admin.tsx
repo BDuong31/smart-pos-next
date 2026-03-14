@@ -6,15 +6,15 @@ import UserRegula from "@/components/icons/user";
 import CartRegular from "@/components/icons/cart";
 import SearchRegular, { SearchBold } from "../icons/search";
 import React, { useState } from "react";
-import SearchPopup from "../search/search-popup";
+// import SearchPopup from "../search/search-popup";
 import ChevronDown from "../icons/chevron-down";
 import User from "@/components/icons/user";
 import SettingRegular from "../icons/settings";
 import LogoutRegular from "../icons/logout";
-import { useUserProfile } from "@/context/user-context";
+// import { useUserProfile } from "@/context/user-context";
 
 const HeaderAdmin = () => {
-    const { userProfile } = useUserProfile()
+    // const { userProfile } = useUserProfile()
     const [isSearchOpen, setIsSearchOpen] = React.useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -33,7 +33,7 @@ const HeaderAdmin = () => {
                                 className="btn btn-outline flex items-center gap-2 group"
                                 onClick={toggleDropdown} 
                             >
-                                {userProfile?.fullName}
+                                {/* {userProfile?.fullName} */}
                                 <ChevronDown className={`transition-transform duration-300 group-hover:stroke-white ${isDropdownOpen ? 'rotate-180' : ''}`} />
                             </div>
                             {isDropdownOpen && (

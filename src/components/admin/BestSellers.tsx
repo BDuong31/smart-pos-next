@@ -14,7 +14,7 @@ export default function BestSellers() {
       <div className="card-body p-4 flex flex-col">
         
         <div className="flex justify-between items-center mb-4">
-          <h2 className="card-title">Best Sellers</h2>
+          <h2 className="card-title">Bán chạy</h2>
           <button className="btn btn-ghost btn-circle btn-sm">
             <MoreHorizontal size={20} />
           </button>
@@ -34,14 +34,14 @@ export default function BestSellers() {
               </div>
               <div className="">
                 <p className="text-sm text-graymain">${item.price}</p>
-                <p className="flex font-semibold">{item.sales} sales</p>
+                <p className="flex font-semibold">{item.sales} bán ra</p>
               </div>
             </div>
           ))}
         </div>
 
         <div className="card-actions mt-auto pt-6">
-          <button className="btn btn-neutral btn-block">REPORT</button>
+          <button className="btn btn-neutral btn-block">BÁO CÁO</button>
         </div>
       </div>
     </div>

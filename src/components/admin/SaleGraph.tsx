@@ -6,12 +6,13 @@ import { MoreHorizontal } from 'lucide-react';
 
 // Dữ liệu mẫu (Giữ nguyên)
 const data = [
-  { name: 'JUL', sales: 0 },
-  { name: 'AUG', sales: 100 },
-  { name: 'SEP', sales: 80 },
-  { name: 'OCT', sales: 150 },
-  { name: 'NOV', sales: 250 },
-  { name: 'DEC', sales: 380 },
+  { name: 'THỨ 2', sales: 0 },
+  { name: 'THỨ 3', sales: 100 },
+  { name: 'THỨ 4', sales: 80 },
+  { name: 'THỨ 5', sales: 150 },
+  { name: 'THỨ 6', sales: 250 },
+  { name: 'Thứ 7', sales: 380 },
+  { name: 'CHỦ NHẬT', sales: 200 },
 ];
 
 export default function SaleGraph() {
@@ -21,11 +22,11 @@ export default function SaleGraph() {
       <div className="card-body flex flex-col h-full">
         
         <div className="flex justify-between items-center mb-4">
-          <h2 className="card-title">Sale Graph</h2>
+          <h2 className="card-title">Tổng quan về doanh số</h2>
           <div className="flex gap-2">
-            <button className="btn btn-sm btn-outline">WEEKLY</button>
-            <button className="btn btn-sm btn-neutral">MONTHLY</button>
-            <button className="btn btn-sm btn-outline">YEARLY</button>
+            <button className="btn btn-sm btn-outline">TUẦN</button>
+            <button className="btn btn-sm btn-neutral">THÁNG</button>
+            <button className="btn btn-sm btn-outline">NĂM</button>
           </div>
         </div>
 

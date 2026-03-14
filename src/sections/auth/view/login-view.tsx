@@ -20,9 +20,9 @@ export default function LoginView() {
     const dispatch = useDispatch();
     const { isAuthenticated } = useSelector((state: RootState) => state.auth);
 
-    const [email, setEmail] = React.useState('');
+    const [username, setUsername] = React.useState('');
     const [password, setPassword] = React.useState('');
-    const [emailError, setEmailError] = React.useState('')
+    const [usernameError, setUsernameError] = React.useState('')
     const [passwordError, setPasswordError] = React.useState('')
     const [loading, setLoading] = React.useState(false);
     const [isShowPassword, setIsShowPassword] = React.useState(false)
@@ -31,14 +31,14 @@ export default function LoginView() {
         console.log('handleLogin called');
         e.preventDefault();
         setLoading(true);
-        setEmailError('');
+        setUsernameError('');
         setPasswordError('');
 
-        const result = loginSchema.safeParse({ email, password});
+        const result = loginSchema.safeParse({ username, password});
         if(!result.success){
             result.error.issues.forEach((error) => {
-                if(error.path.includes('email')){
-                    setEmailError(error.message)
+                if(error.path.includes('username')){
+                    setUsernameError(error.message)
                 }
                 if(error.path.includes('password')){
                     setPasswordError(error.message)
@@ -50,13 +50,13 @@ export default function LoginView() {
 
         try {
             const data = await login({
-                email,
+                username,
                 password
             })
 
-            console.log("data: ", data.data);
+            console.log("data: ", data);
             if (data) {
-                dispatch(setToken(data.data.accessToken));
+                dispatch(setToken(data.accessToken));
             }
         } catch (err: any) {
             if (err.response && err.response.data && err.response.data.message){
@@ -79,25 +79,25 @@ export default function LoginView() {
         return <SplashScreen className="h-[80vh]" />
     }
     return (
-        <div className="flex gap-12 m-auto 3xl:max-w-[1500px] 2xl:max-w-[1450px] xl:max-w-[90%] lg:max-w-[90%] max-w-[95%]">
-            <div className="w-[40%] p-8 rounded-lg">
-                <h1 className="text-2xl font-bold mb-4">Login</h1>
+        <div className="flex gap-12 justify-center m-auto 3xl:max-w-[1500px] 2xl:max-w-362.5 xl:max-w-[90%] lg:max-w-[90%] max-w-[95%]">
+            <div className="w-[40%] py-20 rounded-lg justify-items-center">
+                <h1 className="text-2xl font-bold mb-4">Đăng nhập</h1>
                 <form onSubmit={handleLogin}>
-                    <div className="flex flex-col gap-[0.875rem] mb-[1.5rem]">
+                    <div className="flex flex-col gap-3.5 mb-[1.5rem]">
                         <DebouncedInput
                             type="text"
-                            name="email"
-                            placeholder={"Email"}
-                            value={email}
+                            name="username"
+                            placeholder={"Tên đăng nhập hoặc email"}
+                            value={username}
                             className="w-full px-4 py-3 border border-darkgrey rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            onChange={(value: string) => setEmail(value)}
+                            onChange={(value: string) => setUsername(value)}
                         />
-                        {emailError && <p className="text-[#FF0000] text-sm">{emailError}</p>}
+                        {usernameError && <p className="text-[#FF0000] text-sm">{usernameError}</p>}
                         <div className="relative">
                             <DebouncedInput
                                 type={isShowPassword ? "text" : "password"}
                                 name="password"
-                                placeholder={"Password"}
+                                placeholder={"Mật khẩu"}
                                 value={password}
                                 className="w-full px-4 py-3 border border-darkgrey rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 onChange={(value: string) => setPassword(value)}
@@ -111,19 +111,13 @@ export default function LoginView() {
                         </div>
                         {passwordError && <p className="text-[#FF0000] text-sm">{passwordError}</p>}
                     </div>
-                    <div className="max-w-md py-3 mb-3">
-                        <li key='id1' className={`flex items-center pb-1`}>
-                            <input id="idx1" type="checkbox" name="category" className="checkbox checkbox-sm" required />
-                            <label htmlFor="idx1" className="ml-3 font-medium capitalize">Keep me logged in - applies to all log in options below. More info</label>
-                        </li>
-                    </div>
                     <div>
                         <button
                             type="submit"
                             disabled={loading}
                             className="w-full flex items-center justify-between px-4 py-3 bg-darkgrey text-white rounded-lg transition-colors uppercase"
                         >
-                            {loading ? 'Logining...' : 'Login'}
+                            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
                             {loading ? <span className="loading loading-spinner"></span> : <ArrowForward className="stroke-[#F8F8F8]" />}
                         </button>
                     </div>
@@ -148,11 +142,11 @@ export default function LoginView() {
                         </button>
                     </div>
                     <div className="mt-6">
-                        <label htmlFor="idx1" className="font-medium text-graymain capitalize">By clicking 'Log In' you agree to our website BasoClub Terms & Conditions, Baso Privacy Notice and Terms & Conditions.</label>
+                        <label htmlFor="idx1" className="font-medium text-graymain capitalize">Bằng cách nhấp vào 'Đăng nhập', bạn đồng ý với Điều khoản và Điều kiện sử dụng trang web Baso Corner, Thông báo về quyền riêng tư của Baso và Điều khoản & Điều kiện sử dụng.</label>
                     </div>
                 </form>
             </div>
-            <div className="w-[60%] flex flex-col justify-center p-8 mt-8 bg-[#f5f5f5] rounded-lg">
+            {/* <div className="w-[60%] flex flex-col justify-center p-8 mt-8 bg-[#f5f5f5] rounded-lg">
                 <h1 className="text-2xl font-bold mb-4">Join  Baso Club Get Rewarded Today.</h1>
                 <p className="mb-6">As Baso club member you get rewarded with what you love for doing what you love. Sign up today and receive immediate access to these Level 1 benefits:</p>
                 <ul className="list-disc list-inside mb-6 space-y-2">
@@ -168,7 +162,7 @@ export default function LoginView() {
                 >
                     Join Now <ArrowForward />
                 </button>
-            </div>
+            </div> */}
         </div>
     )
 }

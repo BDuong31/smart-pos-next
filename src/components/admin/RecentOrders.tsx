@@ -28,7 +28,7 @@ export default function RecentOrders() {
       <div className="card-body">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="card-title">Recent Orders</h2>
+          <h2 className="card-title">Đơn đặt hàng gần đây</h2>
           <button className="btn btn-ghost btn-circle btn-sm">
             <MoreHorizontal size={20} />
           </button>
@@ -41,12 +41,12 @@ export default function RecentOrders() {
             <thead className="text-base-content/70">
               <tr>
                 <th><input type="checkbox" className="checkbox checkbox-sm" /></th>
-                <th>Product</th>
-                <th>Order ID</th>
-                <th>Date</th>
-                <th>Customer Name</th>
-                <th>Status</th>
-                <th>Amount</th>
+                <th>Món</th>
+                <th>Mã đơn hàng</th>
+                <th>Ngày</th>
+                <th>Tên Khách hàng</th>
+                <th>Trạng thái</th>
+                <th>Số tiền</th>
               </tr>
             </thead>
             <tbody>

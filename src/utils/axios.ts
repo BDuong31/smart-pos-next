@@ -4,6 +4,8 @@ import axios, { AxiosRequestConfig } from 'axios';
 import { store } from '@/store/store';
 import { setToken, logout } from '@/store/slices/authSlice';
 import { HOST_API } from '@/global-config';
+import { createCategory } from '@/apis/category';
+import { get } from 'http';
 // Tạo một instance của axios với cấu hình mặc định
 const axiosInstance = axios.create({ 
     baseURL: HOST_API, 
@@ -55,7 +57,11 @@ axiosInstance.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                const res = await axiosInstance.post('/v1/auth/refresh-token');
+                const res = await axiosInstance.post(
+                    '/v1/auth/refresh-token',
+                    {},
+                    { withCredentials: true }
+                );
 
                 const newToken = res.data.accessToken;
 
@@ -139,7 +145,24 @@ export const endpoints = {
         getShiftId: (id: string) => `${VERSION_PREFIX}/shifts/${id}`,
     },
     loyalty: {},
-    category: {},
+    category: {
+        createCategory: `${VERSION_PREFIX}/categories`,
+        getCategories: (name?: string, parentId?: string, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (name) params.append("name", name)
+            if (parentId) params.append("parentId", parentId)
+
+            return `${VERSION_PREFIX}/categories?${params.toString()}`
+        },
+        getCategoryId: (id: string) => `${VERSION_PREFIX}/categories/${id}`,
+        getListCategoryIds: `${VERSION_PREFIX}/categories/list-by-ids`,
+        updateCategoryId: (id: string) => `${VERSION_PREFIX}/categories/${id}`,
+        deleteCategoryId: (id: string) => `${VERSION_PREFIX}/categories/${id}`,
+    },
     product: {},
     variant: {},
     option: {},

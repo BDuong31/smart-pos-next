@@ -1,7 +1,7 @@
 import  {LoginView}  from "@/sections/auth/view";
 
 export const metadata = {
-    title: " Login | Baso POS",
+    title: " Đăng nhập | Baso Corner",
 }
 
 export default function LoginPage() {
