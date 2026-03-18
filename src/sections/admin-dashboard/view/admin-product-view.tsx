@@ -2,18 +2,18 @@
 
 "use client"; 
 
-import { Plus } from 'lucide-react';
+import { Plus, Underline } from 'lucide-react';
 import Link from 'next/link';
 import ProductCard from '@/components/product/productCard';
 
 import React, { useState, useMemo, useEffect } from 'react'; // Import hooks
 import { GrFormPrevious, GrFormNext } from "react-icons/gr"; // Import icons
-// import { IProduct, IProductDetails } from '@/interfaces/product';
-// import { IConditionalImage, IImage, IImageCreate } from '@/interfaces/image';
-// import { IProductVariant } from '@/interfaces/variant';
-// import { getProducts } from '@/apis/product';
-// import { getImages } from '@/apis/image';
-// import { getVariants } from '@/apis/variant';
+import { IProduct, IProductDetails } from '@/interfaces/product';
+import { IConditionalImage, IImage, IImageCreate } from '@/interfaces/image';
+import { IVariant } from '@/interfaces/variant';
+import { getProducts } from '@/apis/product';
+import { getImages } from '@/apis/image';
+import { getVariants } from '@/apis/variant';
 import SplashScreen from '@/components/loading/splash-sceen';
 
 type products = {
@@ -22,7 +22,7 @@ type products = {
   category: string;
   price: number;
   sales: number;
-  remaining: number;
+  variant: IVariant[];
   img: string;
 }
 
@@ -70,76 +70,88 @@ const getPaginationRange = (currentPage, totalPages) => {
 
 
 export default function ProductsPage() {
-  // const [productList, setProductList] = useState<IProductDetails[]>([]);
-  // const [variantList, setVariantList] = useState<IProductVariant[]>([]);
+  const [productList, setProductList] = useState<IProductDetails[]>([]);
+  const [variantList, setVariantList] = useState<IVariant[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
-  // const fetcherProducts = async () => {
-  //   try {
-  //     const response = await getProducts();
-  //     if (response) {
-  //       setProductList(response.data);
-  //     }
-  //   } catch (error) {
-  //     console.error('Failed to fetch products:', error);
-  //   }
-  // }
+  const fetcherProducts = async () => {
+    try {
+      const name = undefined;
+      const categoryId = undefined;
+      const printerId = undefined;
+      const basePrice = undefined;
+      const isActive = undefined;
+      const isCombo = undefined;
+
+      const page = currentPage;
+      const limit = ITEMS_PER_PAGE;
+
+      const response = await getProducts({ name, categoryId, printerId, basePrice, isActive, isCombo }, page, limit);
+      if (response) {
+        setProductList(response.data);
+        setTotalPages(Math.ceil(response.total / ITEMS_PER_PAGE));
+      }
+    } catch (error) {
+      console.error('Failed to fetch products:', error);
+    }
+  }
 
 
-  // const fetcherVariants = async () => {
-  //   try {
-  //     const allVariants: IProductVariant[] = [];
-  //     for (const product of productList) {
-  //       const response = await getVariants(product.id);
-  //       if (response) {
-  //         allVariants.push(...response.data);
-  //       }
-  //     }
-  //     setVariantList(allVariants);
-  //   } catch (error) {
-  //     console.error('Failed to fetch variants:', error);
-  //   }
-  // }
+  const fetcherVariants = async () => {
+    try {
+      const allVariants: IVariant[] = [];
+      for (const product of productList) {
+        const productId = product.id;
+        const name = undefined;
+        const priceDiff = undefined;
+        const page = 1;
+        const limit = 100; 
+        const response = await getVariants({ productId, name, priceDiff }, page, limit);
+        if (response) {
+          allVariants.push(...response.data);
+        }
+      }
+      setVariantList(allVariants);
+    } catch (error) {
+      console.error('Failed to fetch variants:', error);
+    }
+  }
 
-  // React.useEffect(() => {
-  //   setLoading(true);
-  //   fetcherProducts();
-  // }, []);
-  // React.useEffect(() => {
-  //   fetcherVariants()
-  // }, [productList]);
-  // const mergedProducts = useMemo(() => {
-  //   return productList.map(product => {
-  //     const variants = variantList.filter(variant => variant.productId === product.id);
-  //     const data: products = {
-  //       id: product.id,
-  //       name: product.productName,
-  //       category: product.category.name,
-  //       price: product.price,
-  //       sales: 1000,
-  //       remaining: variants.reduce((sum, v) => sum + v.quantity, 0),
-  //       img: product?.image === null ? "https://res.cloudinary.com/dzyrtxn7j/image/upload/v1763306606/ecommerce/products/019a730c-527e-7438-8287-1da8096d0386/kvheitugc7suhxdzzbao.avif" : product.images.find(img => img.isMain)?.url || '',
-  //     };
-  //     return data;
-  //   });
-  // }, [productList, variantList]);
+  React.useEffect(() => {
+    setLoading(true);
+    fetcherProducts();
+  }, []);
+  React.useEffect(() => {
+    fetcherVariants()
+  }, [productList]);
+  const mergedProducts = useMemo(() => {
+    return productList.map(product => {
+      const variants = variantList.filter(variant => variant.productId === product.id);
+      const data: products = {
+        id: product.id,
+        name: product.name,
+        category: product.category.name,
+        price: product.basePrice,
+        sales: 1000,
+        variant: variants, 
+        img: product?.images === null ? "https://res.cloudinary.com/dzyrtxn7j/image/upload/v1763306606/ecommerce/products/019a730c-527e-7438-8287-1da8096d0386/kvheitugc7suhxdzzbao.avif" : product.images.find(img => img.isMain)?.url || '',
+      };
+      return data;
+    });
+  }, [productList, variantList]);
 
-  // useEffect(() => {
-  //   if (mergedProducts.length > 0) {
-  //     setLoading(false);
-  //   }
-  // }, [mergedProducts]);
-  // const totalPages = useMemo(() => {
-  //   return Math.ceil(mergedProducts.length / ITEMS_PER_PAGE);
-  // }, [mergedProducts]);
-  const totalPages = 10; // Giả sử có 10 trang, bạn sẽ tính toán dựa trên dữ liệu thực tế
+  useEffect(() => {
+    if (mergedProducts.length > 0) {
+      setLoading(false);
+    }
+  }, [mergedProducts]);
 
-  // const currentProducts = useMemo(() => {
-  //   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  //   const endIndex = startIndex + ITEMS_PER_PAGE;
-  //   return mergedProducts.slice(startIndex, endIndex);
-  // }, [currentPage, mergedProducts]);
+  useEffect(() => {
+    setLoading(true);
+    fetcherProducts().finally(() => setLoading(false));
+  }, [currentPage]);
 
   const goToPrevPage = () => {
       setCurrentPage(prev => Math.max(1, prev - 1));
@@ -147,7 +159,7 @@ export default function ProductsPage() {
   const goToNextPage = () => {
       setCurrentPage(prev => Math.min(totalPages, prev + 1));
   };
-  const goToPage = (page) => {
+  const goToPage = (page: number) => {
       if (page >= 1 && page <= totalPages) {
           setCurrentPage(page);
       }
@@ -155,22 +167,22 @@ export default function ProductsPage() {
   
   const pageNumbers = getPaginationRange(currentPage, totalPages);
 
-  // if (loading) {
-  //     return <SplashScreen className='h-[100vh]'/>
-  // }
+  if (loading) {
+      return <SplashScreen className='h-[100vh]'/>
+  }
   return (
     <div className="flex flex-col gap-6 p-6 max-h-[90vh] overflow-y-auto scrollbar-hide">
       
       {/* 1. Header (Title & Nút Add New) - Giữ nguyên */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">All Products</h1>
-          <p className="text-base-content/70 text-sm">Home &gt; All Products</p>
+          <h1 className="text-3xl font-bold">Món</h1>
+          <p className="text-base-content/70 text-sm">Trang chủ &gt; Món</p>
         </div>
         
-        <Link href="/products/new" className="btn btn-neutral">
+        <Link href="/products/new" className="btn btn-neutral bg-darkgrey text-white flex justify-center items-center gap-2 px-2">
           <Plus size={18} />
-          ADD NEW PRODUCT
+            Thêm món mới    
         </Link>
       </div>
 
@@ -193,7 +205,7 @@ export default function ProductsPage() {
                   disabled={currentPage === 1}
                   className="p-2 border rounded-xl disabled:opacity-50 hover:bg-gray-100 transition flex items-center gap-1 font-semibold uppercase px-4"
               >
-                  <GrFormPrevious size={18} /> PREVIOUS
+                  <GrFormPrevious size={18} /> TRƯỚC
               </button>
               
               {pageNumbers.map((item, index) => (
@@ -221,7 +233,7 @@ export default function ProductsPage() {
                   disabled={currentPage === totalPages}
                   className="p-2 border rounded-xl disabled:opacity-50 hover:bg-gray-100 transition flex items-center gap-1 font-semibold uppercase px-4"
               >
-                  NEXT <GrFormNext size={18} />
+                  SAU <GrFormNext size={18} />
               </button>
           </div>
       )}

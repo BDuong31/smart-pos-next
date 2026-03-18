@@ -68,7 +68,7 @@ export default function SideRightAdmin() {
       title: "Thực đơn",
       items: [
         { name: "Danh mục", href: "/categories", icon: FolderTree },
-        { name: "Món ăn", href: "/products", icon: UtensilsCrossed },
+        { name: "Món", href: "/products", icon: UtensilsCrossed },
         { name: "Nhóm tùy chọn", href: "/options", icon: SlidersHorizontal },
         { name: "Combo", href: "/combos", icon: PackageOpen },
       ],

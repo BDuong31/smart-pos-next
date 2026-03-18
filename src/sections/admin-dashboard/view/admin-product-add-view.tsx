@@ -6,16 +6,16 @@ import { Plus, Trash2, UploadCloud, X } from 'lucide-react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { IProductCreate } from '@/interfaces/product';
-import { IProductVariant, IVariantCreate } from '@/interfaces/variant';
+import { IVariant, IVariantCreate } from '@/interfaces/variant';
 import { useToast } from '@/context/toast-context';
 import { IImageCreate } from '@/interfaces/image';
 import { createProduct } from '@/apis/product';
 import { createVariant } from '@/apis/variant';
+import { getPrinters } from '@/apis/printer';
 import { uploadImage } from '@/apis/image';
-import { getBrands } from '@/apis/brand';
 import { getCategories } from '@/apis/category';
-import { IBrand } from '@/interfaces/brand';
 import { ICategory } from '@/interfaces/category';
+import { IPrinter } from '@/interfaces/printer';
 import ImageRegular from '@/components/icons/image';
 
 const MAX_IMAGES = 4;
@@ -32,29 +32,32 @@ export default function ProductCreateView() {
   const [isLoading, setIsLoading] = useState(false);
   
   const [product, setProduct] = useState<IProductCreate>({
-    productName: '',
-    price: 0,
-    description: '',
-    brandId: '',
+    name: '',
     categoryId: '',
+    printerId: '',
+    basePrice: 0,
+    isActive: true,
+    isCombo: false,
   });
   
   const [variants, setVariants] = useState<IVariantCreate[]>([]);
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [coverImage, setCoverImage] = useState<string | null>(null);
-  const [brands, setBrands] = useState<IBrand[]>([]);
   const [categories, setCategories] = useState<ICategory[]>([]);
+  const [printers, setPrinters] = useState<IPrinter[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [brandResponse, categoryResponse] = await Promise.all([
-          getBrands(),
-          getCategories()
+        const page = 1;
+        const limit = 100;
+        const [ categoryResponse, printerResponse] = await Promise.all([
+          getCategories( page, limit ),
+          getPrinters(page, limit )
         ]);
 
-        if (brandResponse.data) setBrands(brandResponse.data);
         if (categoryResponse.data) setCategories(categoryResponse.data);
+        if (printerResponse.data) setPrinters(printerResponse.data);
 
       } catch (error) {
         showToast('Error loading page data.', 'error');
@@ -73,7 +76,7 @@ export default function ProductCreateView() {
     const { name, value } = e.target;
     const updatedVariants = [...variants];
     
-    if (name === 'quantity' || name === 'price' || name === 'size') {
+    if (name === 'priceDiff') {
       updatedVariants[index] = { ...updatedVariants[index], [name]: parseFloat(value) || 0 };
     } else {
       updatedVariants[index] = { ...updatedVariants[index], [name]: value };
@@ -83,7 +86,7 @@ export default function ProductCreateView() {
   };
 
   const addVariant = () => { 
-    setVariants([...variants, { size: 0, color: '', sku: '', quantity: 0, productId: '' }]); 
+    setVariants([...variants, { productId: '', name: '', priceDiff: 0 }]); 
   };
 
   const removeVariant = (index: number) => { 
@@ -138,7 +141,7 @@ export default function ProductCreateView() {
   const handleCreate = async () => {
     setIsLoading(true);
 
-    if (!product.productName || !product.price || !product.categoryId || !product.brandId) {
+    if (!product.name || !product.basePrice || !product.categoryId || !product.printerId) {
       showToast('Vui lòng điền đầy đủ thông tin sản phẩm.', 'error');
       setIsLoading(false); return;
     }
@@ -155,11 +158,12 @@ export default function ProductCreateView() {
 
     try {
       const productPayload: IProductCreate = {
-        productName: product.productName || '',
-        price: parseFloat(product.price.toString()) || 0,
-        description: product.description || '',
-        brandId: product.brandId || '',
-        categoryId: product.categoryId || '',
+        name: product.name,
+        categoryId: product.categoryId,
+        printerId: product.printerId,
+        basePrice: product.basePrice,
+        isActive: product.isActive,
+        isCombo: product.isCombo,
       };
 
       const productResponse = await createProduct(productPayload)
@@ -169,11 +173,9 @@ export default function ProductCreateView() {
       if (variants.length > 0) {
         const variantPromises = variants.map(variant => {
           const variantPayload: IVariantCreate = {
-            size: parseInt(variant.size.toString()) || 0,
-            color: variant.color || '',
-            sku: variant.sku || '',
-            quantity: variant.quantity || 0,
             productId: newProductId!,
+            name: variant.name,
+            priceDiff: variant.priceDiff,
           };
           return createVariant(variantPayload);
         });
@@ -215,17 +217,13 @@ export default function ProductCreateView() {
         <div className="lg:col-span-2 space-y-6">
           <div className="gap-6">
               <div className="form-control gap-4">
-                <label className="font-semibold"><span className="label-text">Product Name</span></label>
-                <input type="text" name="productName" value={product.productName || ''} onChange={handleProductChange} className="input input-bordered" placeholder="e.g., Adidas Ultra boost" />
-              </div>
-              <div className="form-control">
-                <label className="label"><span className="label-text">Description</span></label>
-                <textarea name="description" value={product.description || ''} onChange={handleProductChange} className="textarea textarea-bordered h-24" placeholder="Product description..."></textarea>
+                <label className="font-semibold"><span className="label-text">Tên món</span></label>
+                <input type="text" name="name" value={product.name || ''} onChange={handleProductChange} className="input input-bordered" placeholder="e.g., Adidas Ultra boost" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="form-control">
                   <label className="label"><span className="label-text">Base Price</span></label>
-                  <input type="number" name="price" value={product.price || 0} onChange={handleProductChange} className="input input-bordered" placeholder="0.00" />
+                  <input type="number" name="basePrice" value={product.basePrice || 0} onChange={handleProductChange} className="input input-bordered" placeholder="0.00" />
                 </div>
                 
                 <div className="form-control">
@@ -236,7 +234,7 @@ export default function ProductCreateView() {
                     onChange={handleProductChange} 
                     className="select select-bordered"
                   >
-                    <option value="" disabled>Choose a category</option>
+                    <option value="" disabled>Chọn danh mục</option>
                     {categories.map(category => (
                       <option key={category.id} value={category.id}>{category.name}</option>
                     ))}
@@ -244,16 +242,16 @@ export default function ProductCreateView() {
                 </div>
 
                 <div className="form-control">
-                  <label className="label"><span className="label-text">Brand Name</span></label>
+                  <label className="label"><span className="label-text">Chọn máy in</span></label>
                   <select 
-                    name="brandId" 
-                    value={product.brandId || ''} 
+                    name="printerId" 
+                    value={product.printerId || ''} 
                     onChange={handleProductChange} 
                     className="select select-bordered"
                   >
-                    <option value="" disabled>Choose a brand</option>
-                    {brands.map(brand => (
-                      <option key={brand.id} value={brand.id}>{brand.name}</option>
+                    <option value="" disabled>Chọn máy in</option>
+                    {printers.map(printer => (
+                      <option key={printer.id} value={printer.id}>{printer.name}</option>
                     ))}
                   </select>
                 </div>
@@ -262,8 +260,8 @@ export default function ProductCreateView() {
 
           <div>
               <div className="flex justify-between items-center my-4">
-                <h2 className="card-title">Product Variants</h2>
-                <button className="btn btn-neutral btn-sm" onClick={addVariant} disabled={isLoading}><Plus size={16} /> Add Variant</button>
+                <h2 className="card-title">Biến thể món</h2>
+                <button className="btn btn-neutral btn-sm" onClick={addVariant} disabled={isLoading}><Plus size={16} /> Thêm biến thể</button>
               </div>
               
               <div className="space-y-6">
