@@ -98,11 +98,19 @@ const VERSION_PREFIX = '/v1';
 export const endpoints = {
     image: {
         createImage: `${VERSION_PREFIX}/images`,
-        getImage: (refId?: string, type?: string, isMain?: boolean, page?: number, limit?: number) => 
-            `${VERSION_PREFIX}/images?limit=${limit}&page=${page}&refId=${refId || ''}&type=${type || ''}&isMain=${isMain !== undefined ? isMain : ''}`,
+        getImages: (refId?: string, type?: string, isMain?: boolean, page?: number, limit?: number) => {
+            const params = new URLSearchParams();
+            if (refId) params.append('refId', refId);
+            if (type) params.append('type', type);
+            if (isMain !== undefined) params.append('isMain', String(isMain));
+            if (page !== undefined) params.append('page', String(page));
+            if (limit !== undefined) params.append('limit', String(limit));
+
+            return `${VERSION_PREFIX}/images?${params.toString()}`;
+        },
         getImageId: (id: string) => `${VERSION_PREFIX}/images/${id}`,
-        updateImageId: (id: string) => `${VERSION_PREFIX}/images/${id}`,
-        deleteImageId: (id: string) => `${VERSION_PREFIX}/images/${id}`,
+        updateImage: (id: string) => `${VERSION_PREFIX}/images/${id}`,
+        deleteImage: (id: string) => `${VERSION_PREFIX}/images/${id}`,
         rpcImageRefId: `${VERSION_PREFIX}/images/rpc/get-by-ref-id`,
     },
 
@@ -163,9 +171,66 @@ export const endpoints = {
         updateCategoryId: (id: string) => `${VERSION_PREFIX}/categories/${id}`,
         deleteCategoryId: (id: string) => `${VERSION_PREFIX}/categories/${id}`,
     },
-    product: {},
-    variant: {},
+    product: {
+        createProduct: `${VERSION_PREFIX}/products`,
+        getProducts: (name?: string, categoryId?: string, printerId?: string, basePrice?: number, isActive?: boolean, isCombo?: boolean, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (name) params.append("name", name)
+            if (categoryId) params.append("categoryId", categoryId)
+            if (printerId) params.append("printerId", printerId)
+            if (basePrice !== undefined) params.append("basePrice", String(basePrice))
+            if (isActive !== undefined) params.append("isActive", String(isActive))
+            if (isCombo !== undefined) params.append("isCombo", String(isCombo))
+
+            return `${VERSION_PREFIX}/products?${params.toString()}`
+        },
+        getProductId: (id: string) => `${VERSION_PREFIX}/products/${id}`,
+        getListProductIds: `${VERSION_PREFIX}/products/list-by-ids`,
+        updateProduct: (id: string) => `${VERSION_PREFIX}/products/${id}`,
+        deleteProduct: (id: string) => `${VERSION_PREFIX}/products/${id}`,
+    },
+    variant: {
+        createVariant: `${VERSION_PREFIX}/variants`,
+        getVariants: (productId?: string, name?: string, priceDiff?: number, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (productId) params.append("productId", productId)
+            if (name) params.append("name", name)
+            if (priceDiff !== undefined) params.append("priceDiff", String(priceDiff))
+
+            return `${VERSION_PREFIX}/variants?${params.toString()}`
+        },
+        getVariantById: (id: string) => `${VERSION_PREFIX}/variants/${id}`,
+        getListVariantIds: `${VERSION_PREFIX}/variants/list-by-ids`,
+        updateVariant: (id: string) => `${VERSION_PREFIX}/variants/${id}`,
+        deleteVariant: (id: string) => `${VERSION_PREFIX}/variants/${id}`,
+    },
     option: {},
+    printer: {
+        createPrinter: `${VERSION_PREFIX}/printers`,
+        getPrinters: (name?: string, ipAddress?: string, type?: string, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (name) params.append("name", name)
+            if (ipAddress) params.append("ipAddress", ipAddress)
+            if (type) params.append("type", type)
+
+            return `${VERSION_PREFIX}/printers?${params.toString()}`
+        },
+        getPrinterId: (id: string) => `${VERSION_PREFIX}/printers/${id}`,
+        getListPrinterIds: `${VERSION_PREFIX}/printers/list-by-ids`,
+        updatePrinterId: (id: string) => `${VERSION_PREFIX}/printers/${id}`,
+        deletePrinterId: (id: string) => `${VERSION_PREFIX}/printers/${id}`,
+    },
     zone: {},
     table: {},
     reservation: {},
