@@ -373,11 +373,11 @@ export default function CategoriesView() {
             </div>
           </div>
           <div className="modal-action">
-            <form method="dialog"><button className="btn">Huỷ</button></form>
+            <form method="dialog"><button className="btn bg-graymain text-white px-2">Huỷ</button></form>
             <button className="btn btn-neutral bg-darkgrey text-white px-2" onClick={handleCreate}>Lưu</button>
           </div>
         </div>
-        <form method="dialog" className="modal-backdrop"><button onClick={() => setNewPrinterName('')}>close</button></form>
+        <form method="dialog" className="modal-backdrop"><button onClick={() => setNewPrinterName('')}>Thoát</button></form>
       </dialog>
 
       {/* === 5. MODAL "EDIT" === */}
@@ -423,7 +423,7 @@ export default function CategoriesView() {
             </div>
           </div>
           <div className="modal-action">
-            <form method="dialog"><button className="btn" onClick={() => setEditingPrinter(undefined)}>Huỷ</button></form>
+            <form method="dialog"><button className="btn bg-graymain text-white px-2" onClick={() => setEditingPrinter(undefined)}>Huỷ</button></form>
             <button className="btn btn-neutral bg-darkgrey text-white px-2" onClick={handleUpdate}>Lưu thay đổi</button>
           </div>
         </div>
@@ -440,8 +440,8 @@ export default function CategoriesView() {
             Hành động này không thể hoàn tác.
           </p>
           <div className="modal-action">
-            <form method="dialog"><button className="btn" onClick={() => setPrinterToDelete(undefined)}>Huỷ</button></form>
-            <button className="btn btn-error bg-darkgrey text-white px-2" onClick={handleConfirmDelete}>Xóa</button>
+            <form method="dialog"><button className="btn bg-graymain text-white px-2" onClick={() => setPrinterToDelete(undefined)}>Huỷ</button></form>
+            <button className="btn btn-error bg-error text-white px-2" onClick={handleConfirmDelete}>Xóa</button>
           </div>
         </div>
         <form method="dialog" className="modal-backdrop"><button onClick={() => setPrinterToDelete(undefined)}>Thoát</button></form>

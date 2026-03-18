@@ -15,7 +15,7 @@ import { IProductDetails, IProductUpdate } from '@/interfaces/product';
 import { getProductById, updateProduct, deleteProduct } from '@/apis/product';
 
 // +++ Import Variant APIs +++
-import { IProductVariant, IVariantCreate, IVariantUpdate } from '@/interfaces/variant';
+import { IVariant, IVariantCreate, IVariantUpdate } from '@/interfaces/variant';
 import { createVariant, updateVariant, deleteVariant, getVariants } from '@/apis/variant'; // Giả định getVariantsByProductId tồn tại
 
 // +++ Import Image APIs +++
@@ -23,10 +23,11 @@ import { IImage, IImageCreate, IImageUpdate } from '@/interfaces/image';
 import { getImages, uploadImage, deleteImage, updateImage } from '@/apis/image';
 
 // +++ Import Brand/Category APIs +++
-import { IBrand } from '@/interfaces/brand';
 import { ICategory } from '@/interfaces/category';
-import { getBrands } from '@/apis/brand';
 import { getCategories } from '@/apis/category';
+import { getPrinters } from '@/apis/printer';
+import { IPrinter } from '@/interfaces/printer';
+import { id } from 'zod/v4/locales';
 
 type ProductEditPageProps = {
     id: string;
@@ -40,10 +41,9 @@ export default function ProductEditPage({ id }: ProductEditPageProps) {
 
   // --- States ---
   const [product, setProduct] = useState<IProductUpdate | null>(null);
-  const [variants, setVariants] = useState<IProductVariant[]>([]);
-  const [brands, setBrands] = useState<IBrand[]>([]);
+  const [variants, setVariants] = useState<IVariant[]>([]);
   const [categories, setCategories] = useState<ICategory[]>([]);
-  
+  const [printers, setPrinters] = useState<IPrinter[]>([]); // Giả định có interface IPrinter
   // --- Loading States ---
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -59,7 +59,7 @@ export default function ProductEditPage({ id }: ProductEditPageProps) {
   const [variantsToDelete, setVariantsToDelete] = useState<string[]>([]);
   
   // Lưu state ban đầu để so sánh
-  const [initialData, setInitialData] = useState<{ variants: IProductVariant[], images: IImage[] } | null>(null);
+  const [initialData, setInitialData] = useState<{ variants: IVariant[], images: IImage[] } | null>(null);
 
 
   // --- 1. Data Fetching ---
@@ -69,15 +69,24 @@ export default function ProductEditPage({ id }: ProductEditPageProps) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [productRes, variantsRes, imagesRes, brandsRes, categoriesRes] = await Promise.all([
+        const url = undefined;
+        const refId = id;
+        const type = 'product';
+        const isMain = undefined;
+        const page = 1;
+        const limit = 100;
+        const productId = id;
+        const name = undefined;
+        const priceDiff = undefined;
+        const parentId = undefined;
+        const ipAddress = undefined;
+
+        const [productRes, variantsRes, imagesRes, categoriesRes, printersRes] = await Promise.all([
           getProductById(id),          
-          getVariants(id),  
-          getImages({
-            refId: id,
-            type: 'product'
-          }),              
-          getBrands(),                 
-          getCategories()              
+          getVariants({ productId, name, priceDiff }, page, limit),  
+          getImages({ url, refId, type, isMain }, page, limit),              
+          getCategories(name, parentId , page, limit),
+          getPrinters(name, ipAddress, type, page, limit),              
         ]);
 
         if (!productRes || !productRes.data) {
@@ -89,8 +98,8 @@ export default function ProductEditPage({ id }: ProductEditPageProps) {
         setProduct(productRes.data);
         setVariants(variantsRes ? variantsRes.data : []);
         setExistingImages(imagesRes ? imagesRes.data : []);
-        setBrands(brandsRes ? brandsRes.data : []);
         setCategories(categoriesRes ? categoriesRes.data : []);
+        setPrinters(printersRes ? printersRes.data : []);
 
         // Lưu state ban đầu
         setInitialData({
@@ -242,11 +251,12 @@ export default function ProductEditPage({ id }: ProductEditPageProps) {
     try {
       // --- BƯỚC 1: Cập nhật thông tin Product chính ---
       await updateProduct(id, {
-        productName: product.productName,
-        description: product.description,
-        price: product.price,
-        categoryId: product.categoryId,
-        brandId: product.brandId,
+            name: product.name,
+            categoryId: product.categoryId,
+            printerId: product.printerId,
+            basePrice: product.basePrice,
+            isActive: product.isActive,
+            isCombo: product.isCombo,
       });
 
       // --- BƯỚC 2: Xử lý Variants (Xóa, Cập nhật, Thêm) ---
@@ -265,10 +275,8 @@ export default function ProductEditPage({ id }: ProductEditPageProps) {
           // Thêm mới
           const newVariant: IVariantCreate = {
             productId: id,
-            size: variant.size,
-            color: variant.color,
-            sku: variant.sku,
-            quantity: variant.quantity,
+            name: variant.name,
+            priceDiff: variant.priceDiff,
           };
           variantPromises.push(createVariant(newVariant));
         } else {
@@ -352,14 +360,14 @@ export default function ProductEditPage({ id }: ProductEditPageProps) {
   }
 
   if (!product) {
-    return <div className="text-center p-10">Product not found.</div>;
+    return <div className="text-center p-10">Món không tồn tại.</div>;
   }
 
   return (
     <div className="flex flex-col gap-6 p-6 max-h-[90vh] overflow-y-auto scrollbar-hide">
       <div>
-        <h1 className="text-3xl font-bold">Product Details</h1>
-        <p className="text-base-content/70 text-sm">Home &gt; All Products &gt; Product Details</p>
+        <h1 className="text-3xl font-bold">Thông tin món</h1>
+        <p className="text-base-content/70 text-sm">Trang chủ &gt; Món &gt; Thông tin món</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 bg-white gap-6 rounded-2xl p-6">
@@ -368,36 +376,33 @@ export default function ProductEditPage({ id }: ProductEditPageProps) {
           
           {/* Thông tin chung */}
           <div className="gap-6">
-              <div className="form-control gap-4">
-                <label className="font-semibold"><span className="label-text">Product Name</span></label>
-                <input type="text" name="productName" value={product.productName || ''} onChange={handleProductChange} className="input input-bordered" />
+              <div className="form-control gap-4 flex items-center mb-2">
+                <label className="font-semibold"><span className="label-text">Tên món</span></label>
+                <input type="text" name="name" value={product.name || ''} onChange={handleProductChange} className="input input-bordered" />
               </div>
-              <div className="form-control">
-                <label className="label"><span className="label-text">Description</span></label>
-                <textarea name="description" value={product.description || ''} onChange={handleProductChange} className="textarea textarea-bordered h-24"></textarea>
-              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="form-control">
-                  <label className="label"><span className="label-text">Base Price</span></label>
-                  <input type="number" name="price" value={product.price || ''} onChange={handleProductChange} className="input input-bordered" />
+                  <label className="label"><span className="label-text">Giá cơ bản</span></label>
+                  <input type="number" name="basePrice" value={product.basePrice || ''} onChange={handleProductChange} className="input input-bordered" />
                 </div>
                 {/* +++ SELECT CATEGORY +++ */}
                 <div className="form-control">
-                  <label className="label"><span className="label-text">Category</span></label>
+                  <label className="label"><span className="label-text">Danh mục</span></label>
                   <select name="categoryId" value={product.categoryId || ''} onChange={handleProductChange} className="select select-bordered">
-                    <option value="" disabled>Choose a category</option>
+                    <option value="" disabled>Chọn danh mục</option>
                     {categories.map(category => (
                       <option key={category.id} value={category.id}>{category.name}</option>
                     ))}
                   </select>
                 </div>
-                {/* +++ SELECT BRAND +++ */}
+                {/* +++ SELECT PRINTER +++ */}
                 <div className="form-control">
-                  <label className="label"><span className="label-text">Brand Name</span></label>
-                  <select name="brandId" value={product.brandId || ''} onChange={handleProductChange} className="select select-bordered">
-                    <option value="" disabled>Choose a brand</option>
-                    {brands.map(brand => (
-                      <option key={brand.id} value={brand.id}>{brand.name}</option>
+                  <label className="label"><span className="label-text">Máy in</span></label>
+                  <select name="printerId" value={product.printerId || ''} onChange={handleProductChange} className="select select-bordered">
+                    <option value="" disabled>Chọn máy in</option>
+                    {printers.map(printer => (
+                      <option key={printer.id} value={printer.id}>{printer.name}</option>
                     ))}
                   </select>
                 </div>
@@ -407,19 +412,17 @@ export default function ProductEditPage({ id }: ProductEditPageProps) {
           {/* Quản lý Variants */}
           <div>
               <div className="flex justify-between items-center my-4">
-                <h2 className="card-title">Product Variants</h2>
-                <button className="btn btn-neutral btn-sm" onClick={addVariant} disabled={isUpdating}><Plus size={16} /> Add Variant</button>
+                <h2 className="card-title">Biến thể món</h2>
+                <button className="btn btn-neutral btn-sm bg-darkgrey text-white px-2" onClick={addVariant} disabled={isUpdating}><Plus size={16} /> Thêm biến thể</button>
               </div>
               
               <div className="space-y-6">
                 {variants.map((variant, index) => (
                   <div key={variant.id} className="p-4 border rounded-lg relative">
                     <button className="btn btn-error btn-xs btn-circle absolute -top-3 -right-3" onClick={() => removeVariant(index)} disabled={isUpdating}><X size={14} /></button>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                      <div className="form-control"><label className="label"><span className="label-text">Size</span></label><input type="text" name="size" placeholder="e.g., 40" value={variant.size || ''} onChange={(e) => handleVariantChange(index, e)} className="input input-bordered input-sm" /></div>
-                      <div className="form-control"><label className="label"><span className="label-text">Color</span></label><input type="text" name="color" placeholder="e.g., Black" value={variant.color || ''} onChange={(e) => handleVariantChange(index, e)} className="input input-bordered input-sm" /></div>
-                      <div className="form-control"><label className="label"><span className="label-text">SKU</span></label><input type="text" name="sku" placeholder="SKU-001" value={variant.sku || ''} onChange={(e) => handleVariantChange(index, e)} className="input input-bordered input-sm" /></div>
-                      <div className="form-control"><label className="label"><span className="label-text">Stock Qty</span></label><input type="number" name="quantity" placeholder="0" value={variant.quantity || 0} onChange={(e) => handleVariantChange(index, e)} className="input input-bordered input-sm" /></div>
+                    <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+                      <div className="form-control"><label className="label"><span className="label-text">Tên biến thể</span></label><input type="text" name="name" placeholder="e.g., Size M"  value={variant.name || ''} onChange={(e) => handleVariantChange(index, e)} className="input input-bordered input-sm" /></div>
+                      <div className="form-control"><label className="label"><span className="label-text">Giá chênh lệch</span></label><input type="text" name="priceDiff" placeholder="e.g., 10000" value={variant.priceDiff || ''} onChange={(e) => handleVariantChange(index, e)} className="input input-bordered input-sm" /></div>
                     </div>
                   </div>
                 ))}
@@ -430,7 +433,7 @@ export default function ProductEditPage({ id }: ProductEditPageProps) {
         {/* === CỘT BÊN PHẢI (GALLERY) --- Đã viết lại */}
         <div className="lg:col-span-1 space-y-6">
           <div>
-              <h2 className="card-title mb-4">Product Gallery</h2>
+              <h2 className="card-title mb-4">Thư viện ảnh món</h2>
               
               <div className='p-2 bg-gray-100 rounded-2xl mb-4'>
                 <Image 
@@ -551,12 +554,12 @@ export default function ProductEditPage({ id }: ProductEditPageProps) {
         
         {/* Nút Actions */}
         <div className="lg:col-span-3 card-body flex-row justify-end gap-4">
-            <button className="btn" onClick={() => router.push('/products')} disabled={isUpdating}>CANCEL</button>
-            <button className="btn btn-error" onClick={handleDelete} disabled={isUpdating}>
-              {isUpdating ? <span className="loading loading-spinner"></span> : 'DELETE'}
+            <button className="btn bg-graymain text-white px-2" onClick={() => router.push('/products')} disabled={isUpdating}>HỦY</button>
+            <button className="btn btn-error bg-error text-white px-2" onClick={handleDelete} disabled={isUpdating}>
+              {isUpdating ? <span className="loading loading-spinner"></span> : 'XÓA'}
             </button>
-            <button className="btn btn-neutral" onClick={handleUpdate} disabled={isUpdating}>
-              {isUpdating ? <span className="loading loading-spinner"></span> : 'UPDATE'}
+            <button className="btn btn-neutral bg-darkgrey text-white px-2" onClick={handleUpdate} disabled={isUpdating}>
+              {isUpdating ? <span className="loading loading-spinner"></span> : 'CẬP NHẬT'}
             </button>
         </div>
       </div>

@@ -79,16 +79,34 @@ export const forgotPassword = async (email: string): Promise<IApiResponse<Regist
 }
 
 // Gửi lại mã xác thực quên mật khẩu
+export const resendForgotPasswordOtp = async(token: string): Promise<any> => {
+    const response = await axiosInstance.post(endpoints.auth.resendForgotPassword, { token });
+    return response.data;
+}
 
 // Đặt lại mật khẩu bằng mã xác thực
-
-// Đặt lại mật khẩu bằng token
+export const resetPassword = async(token: string, otp: string, newPassword: string): Promise<void> => {
+    const response = await axiosInstance.post(endpoints.auth.resetPassword, { token, otp, newPassword });
+    return response.data;
+}
 
 // Đổi mật khẩu
+export const changePassword = async(currentPassword: string, newPassword: string): Promise<void> => {
+    const response = await axiosInstance.post(endpoints.auth.changePassword, { currentPassword, newPassword });
+    return response.data;
+}
 
 // Làm mới token
+export const refreshToken = async (refreshToken: string): Promise<LoginResponse> => {
+    const response = await axiosInstance.post(endpoints.auth.refreshToken, { refreshToken });
+    return response.data;
+}
 
 // Đăng xuất
+export const logout = async (refreshToken: string): Promise<void> => {
+    const response = await axiosInstance.post(endpoints.auth.logout, { refreshToken });
+    return response.data;
+}
 
 // Kiểm tra token hợp lệ
 export const introspect = async (params: introspectParams ): Promise<introspectResponse> => {

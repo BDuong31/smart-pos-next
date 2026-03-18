@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, UploadCloud, X } from 'lucide-react';
+import { Plus, Trash2, Underline, UploadCloud, X } from 'lucide-react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { IProductCreate } from '@/interfaces/product';
@@ -52,8 +52,8 @@ export default function ProductCreateView() {
         const page = 1;
         const limit = 100;
         const [ categoryResponse, printerResponse] = await Promise.all([
-          getCategories( page, limit ),
-          getPrinters(page, limit )
+          getCategories(undefined, undefined, page, limit ),
+          getPrinters(undefined, undefined, undefined, page, limit )
         ]);
 
         if (categoryResponse.data) setCategories(categoryResponse.data);
@@ -158,12 +158,12 @@ export default function ProductCreateView() {
 
     try {
       const productPayload: IProductCreate = {
-        name: product.name,
-        categoryId: product.categoryId,
-        printerId: product.printerId,
-        basePrice: product.basePrice,
-        isActive: product.isActive,
-        isCombo: product.isCombo,
+        name: product.name || '',
+        categoryId: product.categoryId || '',
+        printerId: product.printerId || '',
+        basePrice: Number(product.basePrice) || 0,
+        isActive: product.isActive || true,
+        isCombo: product.isCombo || false,
       };
 
       const productResponse = await createProduct(productPayload)
@@ -173,9 +173,9 @@ export default function ProductCreateView() {
       if (variants.length > 0) {
         const variantPromises = variants.map(variant => {
           const variantPayload: IVariantCreate = {
-            productId: newProductId!,
-            name: variant.name,
-            priceDiff: variant.priceDiff,
+            productId: newProductId || '',
+            name: variant.name || '',
+            priceDiff: variant.priceDiff || 0,
           };
           return createVariant(variantPayload);
         });
@@ -208,26 +208,26 @@ export default function ProductCreateView() {
   return (
     <div className="flex flex-col gap-6 p-6 max-h-[90vh] overflow-y-auto scrollbar-hide">
       <div>
-        <h1 className="text-3xl font-bold">Add New Product</h1>
-        <p className="text-base-content/70 text-sm">Home &gt; All Products &gt; Add New Product</p>
+        <h1 className="text-3xl font-bold">Thêm món ăn</h1>
+        <p className="text-base-content/70 text-sm">Trang chủ &gt; Món ăn &gt; Thêm món ăn</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 bg-white gap-6 rounded-2xl p-6">
         
         <div className="lg:col-span-2 space-y-6">
           <div className="gap-6">
-              <div className="form-control gap-4">
+              <div className="form-control gap-4 flex items-center mb-2">
                 <label className="font-semibold"><span className="label-text">Tên món</span></label>
-                <input type="text" name="name" value={product.name || ''} onChange={handleProductChange} className="input input-bordered" placeholder="e.g., Adidas Ultra boost" />
+                <input type="text" name="name" value={product.name || ''} onChange={handleProductChange} className="input input-bordered" placeholder="e.g., Matcha Latte" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="form-control">
-                  <label className="label"><span className="label-text">Base Price</span></label>
-                  <input type="number" name="basePrice" value={product.basePrice || 0} onChange={handleProductChange} className="input input-bordered" placeholder="0.00" />
+                  <label className="label"><span className="label-text">Giá cơ bản</span></label>
+                  <input type="number" name="basePrice" value={product.basePrice || ''} onChange={handleProductChange} className="input input-bordered" placeholder="0.00" />
                 </div>
                 
                 <div className="form-control">
-                  <label className="label"><span className="label-text">Category</span></label>
+                  <label className="label"><span className="label-text">Danh mục</span></label>
                   <select 
                     name="categoryId" 
                     value={product.categoryId || ''} 
@@ -242,7 +242,7 @@ export default function ProductCreateView() {
                 </div>
 
                 <div className="form-control">
-                  <label className="label"><span className="label-text">Chọn máy in</span></label>
+                  <label className="label"><span className="label-text">Máy in</span></label>
                   <select 
                     name="printerId" 
                     value={product.printerId || ''} 
@@ -261,29 +261,21 @@ export default function ProductCreateView() {
           <div>
               <div className="flex justify-between items-center my-4">
                 <h2 className="card-title">Biến thể món</h2>
-                <button className="btn btn-neutral btn-sm" onClick={addVariant} disabled={isLoading}><Plus size={16} /> Thêm biến thể</button>
+                <button className="btn btn-neutral btn-sm bg-darkgrey text-white px-2" onClick={addVariant} disabled={isLoading}><Plus size={16} /> Thêm biến thể</button>
               </div>
               
               <div className="space-y-6">
                 {variants.map((variant, index) => (
                   <div key={index} className="p-4 border rounded-lg relative">
                     <button className="btn btn-error btn-xs btn-circle absolute -top-3 -right-3" onClick={() => removeVariant(index)} disabled={isLoading}><X size={14} /></button>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
                       <div className="form-control">
-                        <label className="label"><span className="label-text">Size</span></label>
-                        <input type="number" name="size" placeholder="e.g., 40" value={variant.size || ''} onChange={(e) => handleVariantChange(index, e)} className="input input-bordered input-sm" />
+                        <label className="label"><span className="label-text">Tên biến thể</span></label>
+                        <input type="text" name="name" placeholder="e.g., Size M" value={variant.name || ''} onChange={(e) => handleVariantChange(index, e)} className="input input-bordered input-sm" />
                       </div>
                       <div className="form-control">
-                        <label className="label"><span className="label-text">Color</span></label>
-                        <input type="text" name="color" placeholder="e.g., Black" value={variant.color || ''} onChange={(e) => handleVariantChange(index, e)} className="input input-bordered input-sm" />
-                      </div>
-                      <div className="form-control">
-                        <label className="label"><span className="label-text">SKU</span></label>
-                        <input type="text" name="sku" placeholder="SKU-001" value={variant.sku || ''} onChange={(e) => handleVariantChange(index, e)} className="input input-bordered input-sm" />
-                      </div>
-                      <div className="form-control">
-                        <label className="label"><span className="label-text">Stock Qty</span></label>
-                        <input type="number" name="quantity" placeholder="0" value={variant.quantity || 0} onChange={(e) => handleVariantChange(index, e)} className="input input-bordered input-sm" />
+                        <label className="label"><span className="label-text">Giá chênh lệch</span></label>
+                        <input type="text" name="priceDiff" placeholder="e.g., +10000" value={variant.priceDiff || ''} onChange={(e) => handleVariantChange(index, e)} className="input input-bordered input-sm" />
                       </div>
                     </div>
                   </div>
@@ -361,9 +353,9 @@ export default function ProductCreateView() {
         </div>
         
         <div className="lg:col-span-3 card-body flex-row justify-end gap-4">
-            <button className="btn" onClick={() => router.back()} disabled={isLoading}>CANCEL</button>
-            <button className="btn btn-neutral" onClick={handleCreate} disabled={isLoading}>
-                {isLoading ? <span className="loading loading-spinner"></span> : 'SAVE PRODUCT'}
+            <button className="btn bg-graymain text-white px-2" onClick={() => router.back()} disabled={isLoading}>HỦY</button>
+            <button className="btn btn-neutral bg-darkgrey text-white px-2" onClick={handleCreate} disabled={isLoading}>
+                {isLoading ? <span className="loading loading-spinner"></span> : 'LƯU SẢN PHẨM'}
             </button>
         </div>
       </div>

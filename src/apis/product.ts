@@ -1,5 +1,5 @@
 import { IApiResponse } from '@/interfaces/api-response';
-import { IConditionalProduct, IProduct, IProductCreate, IProductDetails } from '@/interfaces/product';
+import { IConditionalProduct, IProduct, IProductCreate, IProductDetails, IProductUpdate } from '@/interfaces/product';
 import {
   default as axios,
   default as axiosInstance,
@@ -36,7 +36,7 @@ export const createProduct = async (productData: IProductCreate): Promise<string
   }
 };
 
-export const updateProduct = async (id: string, productData: Partial<IProduct>): Promise<string> => {
+export const updateProduct = async (id: string, productData: IProductUpdate): Promise<string> => {
     try {
         const { data } = await axiosInstance.patch(endpoints.product.updateProduct(id), productData);
         return data;

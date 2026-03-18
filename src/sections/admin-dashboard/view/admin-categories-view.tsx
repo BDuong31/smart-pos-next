@@ -372,7 +372,7 @@ export default function CategoriesView() {
         <div className="modal-box">
           <h3 className="font-bold text-lg">Xác nhận Xóa!</h3>
           <p className="py-4">
-            Bạn có chắc muốn xóa category <strong className="text-error">{categoryToDelete?.name}</strong>?
+            Bạn có chắc muốn xóa danh mục <strong className="text-error">{categoryToDelete?.name}</strong>?
             <br/>
             Hành động này không thể hoàn tác.
           </p>

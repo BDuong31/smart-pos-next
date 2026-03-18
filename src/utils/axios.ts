@@ -212,7 +212,94 @@ export const endpoints = {
         updateVariant: (id: string) => `${VERSION_PREFIX}/variants/${id}`,
         deleteVariant: (id: string) => `${VERSION_PREFIX}/variants/${id}`,
     },
-    option: {},
+    option: {
+        createOption: `${VERSION_PREFIX}/options/group`,
+        getOptions: (name?: string, isMultiSellect?: boolean, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (name) params.append("name", name)
+            if (isMultiSellect !== undefined) params.append("isMultiSellect", String(isMultiSellect))
+
+            return `${VERSION_PREFIX}/options/group?${params.toString()}`
+        },
+        getOptionById: (id: string) => `${VERSION_PREFIX}/options/group/${id}`,
+        getListOptionIds: `${VERSION_PREFIX}/options/group/list-by-ids`,
+        updateOption: (id: string) => `${VERSION_PREFIX}/options/group/${id}`,
+        deleteOption: (id: string) => `${VERSION_PREFIX}/options/group/${id}`,
+
+        createOptionItem: `${VERSION_PREFIX}/options/group/item`,
+        getOptionItems: (groupId?: string, name?: string, priceExtra?: number, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (groupId) params.append("groupId", groupId)
+            if (name) params.append("name", name)
+            if (priceExtra !== undefined) params.append("priceExtra", String(priceExtra))
+
+            return `${VERSION_PREFIX}/options/group/item/list?${params.toString()}`
+        },
+        getOptionItemById: (id: string) => `${VERSION_PREFIX}/options/group/item/${id}`,
+        getListOptionItemIds: `${VERSION_PREFIX}/options/group/item/list-by-ids`,
+        updateOptionItem: (id: string) => `${VERSION_PREFIX}/options/group/item/${id}`,
+        deleteOptionItem: (id: string) => `${VERSION_PREFIX}/options/group/item/${id}`,
+
+        setProductOptionConfig: `${VERSION_PREFIX}/options/product/config`,
+        getProductOptionConfigs: (productId?: string, optionGroupId?: string, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (productId) params.append("productId", productId)
+            if (optionGroupId) params.append("optionGroupId", optionGroupId)
+
+            return `${VERSION_PREFIX}/options/product/config?${params.toString()}`
+        },
+        getProductOptionConfigsById: (id: string) => `${VERSION_PREFIX}/options/product/config/${id}`,
+        deleteProductOptionConfigById: (id: string) => `${VERSION_PREFIX}/options/product/config/${id}`,
+    },
+    combo: {
+        createCombo: `${VERSION_PREFIX}/combos`,
+        getCombos: (name?: string, price?: number, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (name) params.append("name", name)
+            if (price !== undefined) params.append("price", String(price))
+
+            return `${VERSION_PREFIX}/combos?${params.toString()}`
+        },
+        getComboById: (id: string) => `${VERSION_PREFIX}/combos/${id}`,
+        getListComboIds: `${VERSION_PREFIX}/combos/list-by-ids`,
+        updateCombo: (id: string) => `${VERSION_PREFIX}/combos/${id}`,
+        deleteCombo: (id: string) => `${VERSION_PREFIX}/combos/${id}`,
+
+        createCombosItem: `${VERSION_PREFIX}/combos/items`,
+        getComboItems: (comboId?: string, productId?: string, variantId?: string, quantity?: number, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (comboId) params.append("comboId", comboId)
+            if (productId) params.append("productId", productId)
+            if (variantId) params.append("variantId", variantId)
+            if (quantity !== undefined) params.append("quantity", String(quantity))
+
+            return `${VERSION_PREFIX}/combos/items/list?${params.toString()}`
+        },
+        getComboItemById: (id: string) => `${VERSION_PREFIX}/combos/items/${id}`,
+        getListComboItemIds: `${VERSION_PREFIX}/combos/items/list-by-ids`,
+        updateComboItem: (id: string) => `${VERSION_PREFIX}/combos/items/${id}`,
+        deleteComboItem: (id: string) => `${VERSION_PREFIX}/combos/items/${id}`,
+    },
     printer: {
         createPrinter: `${VERSION_PREFIX}/printers`,
         getPrinters: (name?: string, ipAddress?: string, type?: string, page?: number, limit?: number) => {

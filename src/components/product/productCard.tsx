@@ -2,21 +2,19 @@
 
 import Image from 'next/image';
 import { MoreHorizontal, ArrowUp } from 'lucide-react';
-
+import React from 'react';
+import { IVariant } from '@/interfaces/variant';
 type products = {
   id: string;
   name: string;
   category: string;
   price: number;
   sales: number;
-  remaining: number;
+  variant: IVariant[];
   img: string;
 }
 
 export default function ProductCard({ product }: { product: products }) {
-  const salesPercent = (product.sales / 2000) * 100;
-  const remainingPercent = (product.remaining / 2000) * 100;
-
   return (
     <div className="card bg-base-100 shadow-sm transition-shadow hover:shadow-md">
       <div className="card-body">
@@ -38,16 +36,38 @@ export default function ProductCard({ product }: { product: products }) {
         </div>
 
         <div className="mt-4">
-          <h4 className="font-semibold">Summary</h4>
-          <p className="text-sm text-base-content/70 mt-1">
-            Long distance running requires a lot from athletes.
-          </p>
+          <h4 className="font-semibold mb-2">Biến thể</h4>
+
+          <div className="flex flex-col gap-2">
+            {product.variant.map((variant, index) => (
+              <div
+                key={index}
+                className="flex justify-between items-center p-3 rounded-xl bg-base-200 hover:bg-base-300 transition"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{variant.name}</span>
+                </div>
+
+                <div>
+                  <span
+                    className={`badge ${
+                      variant.priceDiff >= 0 ? "badge-success" : "badge-error"
+                    } badge-outline`}
+                  >
+                    {variant.priceDiff >= 0
+                      ? `+${variant.priceDiff}`
+                      : variant.priceDiff}
+                    đ
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Stats & Progress Bars */}
-        <div className="mt-4 space-y-3">
+        {/* <div className="mt-4 space-y-3">
           
-          {/* Sales */}
           <div>
             <div className="flex justify-between text-sm mb-1">
               <span className="font-medium">Sales</span>
@@ -72,7 +92,7 @@ export default function ProductCard({ product }: { product: products }) {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

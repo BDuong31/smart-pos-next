@@ -29,7 +29,7 @@ type products = {
 
 const ITEMS_PER_PAGE = 9;
 
-const getPaginationRange = (currentPage, totalPages) => {
+const getPaginationRange = (currentPage: number, totalPages: number) => {
     const range = [];
     const maxVisiblePages = 7;
     
@@ -58,7 +58,7 @@ const getPaginationRange = (currentPage, totalPages) => {
 
     let finalRange = [];
     for (let i = 0; i < range.length; i++) {
-        if (range[i] === '...' && i > 0 && i < range.length - 1 && range[i-1] + 1 === range[i+1]) {
+        if (range[i] === '...' && i > 0 && i < range.length - 1 && Number(range[i-1]) + 1 === range[i+1]) {
             continue;
         }
         finalRange.push(range[i]);
@@ -132,7 +132,7 @@ export default function ProductsPage() {
       const data: products = {
         id: product.id,
         name: product.name,
-        category: product.category.name,
+        category: product?.category?.name || 'Không có danh mục',
         price: product.basePrice,
         sales: 1000,
         variant: variants, 
@@ -188,12 +188,12 @@ export default function ProductsPage() {
 
       {/* 2. Products Grid - Dùng 'currentProducts' */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {/* {currentProducts.map((product) => (
+        {mergedProducts.map((product) => (
           console.log('Rendering product in grid:', product),
           <Link href={`/products/${product.id}`} key={product.id}>
             <ProductCard key={product.id} product={product} />
           </Link>
-        ))} */}
+        ))}
       </div>
 
       {totalPages > 1 && (
