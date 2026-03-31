@@ -1,6 +1,6 @@
 import { IApiResponse } from "@/interfaces/api-response";
 import { ICategory, ICategoryCreate, ICategoryUpdate } from "@/interfaces/category";
-import axiosInstance, { endpoints } from "@/utils/axios";
+import { axiosInstance, endpoints } from "@/utils/axios";
 
 export const getCategories = async (name?: string | undefined, parentId?: string | undefined, page?: number, limit?: number): Promise<IApiResponse<ICategory[]>> => {
     const { data } = await axiosInstance.get(endpoints.category.getCategories(name, parentId, page, limit));

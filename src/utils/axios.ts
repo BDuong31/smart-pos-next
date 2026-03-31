@@ -3,13 +3,19 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { store } from '@/store/store';
 import { setToken, logout } from '@/store/slices/authSlice';
-import { HOST_API } from '@/global-config';
+import { HOST_API, AI_API } from '@/global-config';
 import { createCategory } from '@/apis/category';
 import { get } from 'http';
+import { id } from 'zod/v4/locales';
 // Tạo một instance của axios với cấu hình mặc định
-const axiosInstance = axios.create({ 
+export const axiosInstance = axios.create({ 
     baseURL: HOST_API, 
     withCredentials: true,
+});
+
+// Tạo một instance của axios với cấu hình cho AI
+export const axiosAiInstance = axios.create({
+    baseURL: AI_API
 });
 
 // Interceptor để tự động thêm token vào header của mỗi request
@@ -33,6 +39,12 @@ axiosInstance.interceptors.request.use((config) => {
     if (token) {
         config.headers['Authorization'] = `Bearer ${token}`;
     }
+
+    return config;
+})
+
+axiosAiInstance.interceptors.request.use((config) => {
+    config.headers['x-api-key'] = process.env.NEXT_PUBLIC_AI_API_KEY;
 
     return config;
 })
@@ -84,8 +96,6 @@ axiosInstance.interceptors.response.use(
     }
 );
 
-export default axiosInstance;
-
 export const fetcher = async (args: string | [string, AxiosRequestConfig?]) => {
     const [url, config] = Array.isArray(args) ? args : [args];
     const res = await axiosInstance(url, { ...config});
@@ -113,7 +123,6 @@ export const endpoints = {
         deleteImage: (id: string) => `${VERSION_PREFIX}/images/${id}`,
         rpcImageRefId: `${VERSION_PREFIX}/images/rpc/get-by-ref-id`,
     },
-
     auth: {
         register: `${VERSION_PREFIX}/auth/register`,
         resendVerifyOtp: `${VERSION_PREFIX}/auth/resend-verify-otp`,
@@ -129,14 +138,39 @@ export const endpoints = {
         logout: `${VERSION_PREFIX}/auth/logout`,
         introspect: `${VERSION_PREFIX}/rpc/auth/introspect`,
     },
-
     user: {
         createStaff: `${VERSION_PREFIX}/users`,
         profile: `${VERSION_PREFIX}/users/profile`,
-        listUser: (username?: string, fullName?: string, email?: string, role?: string, status?: string, rankId?: string, page?: number, limit?: number) =>
-            `${VERSION_PREFIX}/users?limit=${limit || 10}&page=${page || 1}&username=${username || ''}&fullName=${fullName || ''}&email=${email || ''}&role=${role || ''}&status=${status || ''}&rankId=${rankId || ''}`,
+        listUser: (username?: string, fullName?: string, email?: string, role?: string, status?: string, rankId?: string, page?: number, limit?: number) => {
+            const params = new URLSearchParams();
+
+            if (username) params.append('username', username);
+            if (fullName) params.append('fullName', fullName);
+            if (email) params.append('email', email);
+            if (role) params.append('role', role);
+            if (status) params.append('status', status);
+            if (rankId) params.append('rankId', rankId);
+            if (page) params.append('page', String(page));
+            if (limit) params.append('limit', String(limit));
+
+            return `${VERSION_PREFIX}/users?${params.toString()}`;
+        },
         getUserId: (id: string) => `${VERSION_PREFIX}/users/${id}`,
         getListUserIds: `${VERSION_PREFIX}/users/list-by-ids`,
+        listStaff: (username?: string, fullName?: string, email?: string, role?: string, status?: string, rankId?: string, page?: number, limit?: number) => {
+            const params = new URLSearchParams();
+
+            if (username) params.append('username', username);
+            if (fullName) params.append('fullName', fullName);
+            if (email) params.append('email', email);
+            if (role) params.append('role', role);
+            if (status) params.append('status', status);
+            if (rankId) params.append('rankId', rankId);
+            if (page) params.append('page', String(page));
+            if (limit) params.append('limit', String(limit));
+
+            return `${VERSION_PREFIX}/users/staff?${params.toString()}`;
+        },
         updateUserId: (id: string) => `${VERSION_PREFIX}/users/${id}`,
         updateUserAdminId: (id: string) => `${VERSION_PREFIX}/users/admin-update/${id}`,
         deleteUserId: (id: string) => `${VERSION_PREFIX}/users/${id}`,
@@ -152,7 +186,36 @@ export const endpoints = {
             `${VERSION_PREFIX}/shifts/search?limit=${limit || 10}&page=${page || 1}&userId=${userId || ''}&startTime=${startTime ? new Date(startTime).toISOString() : ''}&endTime=${endTime ? new Date(endTime).toISOString() : ''}`,
         getShiftId: (id: string) => `${VERSION_PREFIX}/shifts/${id}`,
     },
-    loyalty: {},
+    loyalty: {
+        createRank: `${VERSION_PREFIX}/loyalty/user-ranks`,
+        updateRank: (id: string) => `${VERSION_PREFIX}/loyalty/user-ranks/${id}`,
+        deleteRank: (id: string) => `${VERSION_PREFIX}/loyalty/user-ranks/${id}`,
+        getListRank: (name?: string, minPoint?: number, discountPercent?: number, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (name) params.append("name", name)
+            if (minPoint) params.append("minPoint", String(minPoint))
+            if (discountPercent) params.append("discountPercent", String(discountPercent))
+
+            return `${VERSION_PREFIX}/loyalty/user-ranks/list?${params.toString()}`
+        },
+        createPointHistory: `${VERSION_PREFIX}/loyalty/point-histories`,
+        getListPointHistory: (userId?: string, amount?: number,  reason?: string, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (userId) params.append("userId", userId)
+            if (amount) params.append("amount", String(amount))
+            if (reason) params.append("reason", reason)
+
+            return `${VERSION_PREFIX}/loyalty/point-histories?${params.toString()}`
+        }
+    },
     category: {
         createCategory: `${VERSION_PREFIX}/categories`,
         getCategories: (name?: string, parentId?: string, page?: number, limit?: number) => {
@@ -318,8 +381,45 @@ export const endpoints = {
         updatePrinterId: (id: string) => `${VERSION_PREFIX}/printers/${id}`,
         deletePrinterId: (id: string) => `${VERSION_PREFIX}/printers/${id}`,
     },
-    zone: {},
-    table: {},
+    zone: {
+        createZone: `${VERSION_PREFIX}/zones`,
+        updateZone: (id: string) => `${VERSION_PREFIX}/zones/${id}`,
+        deleteZone: (id: string) => `${VERSION_PREFIX}/zones/${id}`,
+        getZones: (name?: string, description?: string, isActive?: boolean, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (name) params.append("name", name)
+            if (description) params.append("description", description)
+            if (isActive !== undefined) params.append("isActive", String(isActive))
+
+            return `${VERSION_PREFIX}/zones?${params.toString()}`
+        },
+        getZoneId: (id: string) => `${VERSION_PREFIX}/zones/${id}`,
+        getListZoneIds: `${VERSION_PREFIX}/zones/list-by-ids`,
+    },
+    table: {
+        createTable: `${VERSION_PREFIX}/tables`,
+        updateTable: (id: string) => `${VERSION_PREFIX}/tables/${id}`,
+        deleteTable: (id: string) => `${VERSION_PREFIX}/tables/${id}`,
+        getTables: (zoneId?: string, name?: string, qrCode?: string, capacity?: number, isActive?: boolean, status?: string, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (zoneId) params.append("zoneId", zoneId)
+            if (name) params.append("name", name)
+            if (qrCode) params.append("qrCode", qrCode)
+            if (capacity !== undefined) params.append("capacity", String(capacity))
+            if (isActive !== undefined) params.append("isActive", String(isActive))
+            if (status) params.append("status", status)
+
+            return `${VERSION_PREFIX}/tables?${params.toString()}`
+        },
+        getTableId: (id: string) => `${VERSION_PREFIX}/tables/${id}`,
+        getListTableIds: `${VERSION_PREFIX}/tables/list-by-ids`,
+    },
     reservation: {},
     cart: {},
     cartItem: {},
@@ -330,17 +430,210 @@ export const endpoints = {
     orderTable: {},
     orderVoucher: {},
     invoice: {},
-    voucher: {},
+    voucher: {
+        createVoucher: `${VERSION_PREFIX}/vouchers`,
+        updateVoucher: (id: string) => `${VERSION_PREFIX}/vouchers/${id}`,
+        deleteVoucher: (id: string) => `${VERSION_PREFIX}/vouchers/${id}`,
+        getVouchers: (code?: string, type?: string, value?: string, minOrderVal?: string, usageLimit?: string, isActive?: string, startDate?: string, endDate?: string, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (code) params.append("code", code)
+            if (type) params.append("type", type)
+            if (value) params.append("value", value)
+            if (minOrderVal) params.append("minOrderVal", minOrderVal)
+            if (usageLimit) params.append("usageLimit", usageLimit)
+            if (isActive) params.append("isActive", isActive)
+            if (startDate) params.append("startDate", startDate)
+            if (endDate) params.append("endDate", endDate)   
+
+            return `${VERSION_PREFIX}/vouchers?${params.toString()}`   
+        },
+        getVoucherId: (id: string) => `${VERSION_PREFIX}/vouchers/${id}`,
+        getListVoucherIds: `${VERSION_PREFIX}/vouchers/list-by-ids`,
+    },
     payment: {},
-    supplier: {},
-    ingredient: {},
-    unitConversion: {},
-    inventoryBatch: {},
-    recipe: {},
-    importInvoice: {},
-    importInvoiceDetail: {},
+    supplier: {
+        createSupplier: `${VERSION_PREFIX}/suppliers`,  
+        getSuppliers: (name?: string, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (name) params.append("name", name)   
+
+            return `${VERSION_PREFIX}/suppliers?${params.toString()}`   
+        },  
+        getSupplierId: (id: string) => `${VERSION_PREFIX}/suppliers/${id}`,
+        getListSupplierIds: `${VERSION_PREFIX}/suppliers/list-by-ids`,
+        updateSupplierId: (id: string) => `${VERSION_PREFIX}/suppliers/${id}`,
+        deleteSupplierId: (id: string) => `${VERSION_PREFIX}/suppliers/${id}`,
+    },
+    ingredient: {
+        createIngredient: `${VERSION_PREFIX}/ingredients`,
+        getIngredients: (name?: string, baseUnit?: string, minStock?: number, forecastDataId?: string, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (name) params.append("name", name)
+            if (baseUnit) params.append("baseUnit", baseUnit)
+            if (minStock !== undefined) params.append("minStock", String(minStock))
+            if (forecastDataId) params.append("forecastDataId", forecastDataId)
+
+            return `${VERSION_PREFIX}/ingredients?${params.toString()}`
+        },
+        getIngredientById: (id: string) => `${VERSION_PREFIX}/ingredients/${id}`,
+        getListIngredientIds: `${VERSION_PREFIX}/ingredients/list-by-ids`,
+        updateIngredient: (id: string) => `${VERSION_PREFIX}/ingredients/${id}`,
+        deleteIngredient: (id: string) => `${VERSION_PREFIX}/ingredients/${id}`,
+    },
+    unitConversion: {
+        createUnitConversion: `${VERSION_PREFIX}/unit-conversions`,
+        getUnitConversions: (ingredientId?: string, fromUnit?: string, toUnit?: string, factor?: number, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (ingredientId) params.append("ingredientId", ingredientId)
+            if (fromUnit) params.append("fromUnit", fromUnit)
+            if (toUnit) params.append("toUnit", toUnit)
+            if (factor !== undefined) params.append("factor", String(factor))
+
+            return `${VERSION_PREFIX}/unit-conversions?${params.toString()}`
+        },
+        getUnitConversionById: (id: string) => `${VERSION_PREFIX}/unit-conversions/${id}`,
+        getUnitConversionByIds: `${VERSION_PREFIX}/unit-conversions/list-by-ids`,
+        updateUnitConversion: (id: string) => `${VERSION_PREFIX}/unit-conversions/${id}`,
+        deleteUnitConversion: (id: string) => `${VERSION_PREFIX}/unit-conversions/${id}`,
+    },
+    inventoryBatch: {
+        createInventoryBatch: `${VERSION_PREFIX}/inventory-batches`,
+        getInventoryBatches: (ingredientId?: string, importInvoiceDetailId?: string, quantity?: number, expiryDate?: Date, importDate?: Date, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (ingredientId) params.append("ingredientId", ingredientId)
+            if (importInvoiceDetailId) params.append("importInvoiceDetailId", importInvoiceDetailId)
+            if (quantity !== undefined) params.append("quantity", String(quantity))
+            if (expiryDate) params.append("expiryDate", expiryDate.toISOString())
+            if (importDate) params.append("importDate", importDate.toISOString())
+
+            return `${VERSION_PREFIX}/inventory-batches?${params.toString()}`
+        },
+        getInventoryBatchById: (id: string) => `${VERSION_PREFIX}/inventory-batches/${id}`,
+        getListInventoryBatchIds: `${VERSION_PREFIX}/inventory-batches/list-by-ids`,
+        updateInventoryBatch: (id: string) => `${VERSION_PREFIX}/inventory-batches/${id}`,
+        deleteInventoryBatch: (id: string) => `${VERSION_PREFIX}/inventory-batches/${id}`,
+    },
+    recipe: {
+        createRecipe: `${VERSION_PREFIX}/recipes`,
+        getRecipes: (ingredientId?: string, amount?: number, productId?: string, variantId?: string, optionItemId?: string, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (ingredientId) params.append("ingredientId", ingredientId)
+            if (amount !== undefined) params.append("amount", String(amount))
+            if (productId) params.append("productId", productId)
+            if (variantId) params.append("variantId", variantId)
+            if (optionItemId) params.append("optionItemId", optionItemId)
+
+            return `${VERSION_PREFIX}/recipes?${params.toString()}`
+        },
+        getRecipeById: (id: string) => `${VERSION_PREFIX}/recipes/${id}`,
+        getListRecipeIds: `${VERSION_PREFIX}/recipes/list-by-ids`,
+        updateRecipe: (id: string) => `${VERSION_PREFIX}/recipes/${id}`,
+        deleteRecipe: (id: string) => `${VERSION_PREFIX}/recipes/${id}`,
+    },
+    importInvoice: {
+        createImportInvoice: `${VERSION_PREFIX}/import-invoices`,
+        getImportInvoices: (code?: string, supplierId?: string, totalCost?: number, importDate?: Date, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (code) params.append("code", code)
+            if (supplierId) params.append("supplierId", supplierId)
+            if (totalCost !== undefined) params.append("totalCost", String(totalCost))
+            if (importDate) params.append("importDate", importDate.toISOString())
+
+            return `${VERSION_PREFIX}/import-invoices?${params.toString()}`
+        },
+        getImportInvoiceById: (id: string) => `${VERSION_PREFIX}/import-invoices/${id}`,
+        getListImportInvoiceIds: `${VERSION_PREFIX}/import-invoices/list-by-ids`,
+        updateImportInvoice: (id: string) => `${VERSION_PREFIX}/import-invoices/${id}`,
+        deleteImportInvoice: (id: string) => `${VERSION_PREFIX}/import-invoices/${id}`,
+    },
+    importInvoiceDetail: {
+        createImportInvoiceDetail: `${VERSION_PREFIX}/import-invoice-details`,
+        getImportInvoiceDetails: (invoiceId?: string, ingredientId?: string, quantity?: number, unit?: string, unitPrice?: number, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (invoiceId) params.append("invoiceId", invoiceId)
+            if (ingredientId) params.append("ingredientId", ingredientId)
+            if (quantity !== undefined) params.append("quantity", String(quantity))
+            if (unit) params.append("unit", unit)
+            if (unitPrice !== undefined) params.append("unitPrice", String(unitPrice))
+
+            return `${VERSION_PREFIX}/import-invoice-details?${params.toString()}`
+        },
+        getImportInvoiceDetailById: (id: string) => `${VERSION_PREFIX}/import-invoice-details/${id}`,
+        getListImportInvoiceDetailIds: `${VERSION_PREFIX}/import-invoice-details/list-by-ids`,
+        updateImportInvoiceDetail: (id: string) => `${VERSION_PREFIX}/import-invoice-details/${id}`,
+        deleteImportInvoiceDetail: (id: string) => `${VERSION_PREFIX}/import-invoice-details/${id}`,    
+    },
     purchaseProposal: {},
     purchaseProposalDetail: {},
-    stockCheck: {},
-    stockCheckDetail: {},
+    stockCheck: {
+        createStockCheck: `${VERSION_PREFIX}/stock-checks`,
+        updateStockCheck: (id: string) => `${VERSION_PREFIX}/stock-checks/${id}`,
+        deleteStockCheck: (id: string) => `${VERSION_PREFIX}/stock-checks/${id}`,
+        getStockChecks: (code?: string, userId?: string, note?: string, checkDate?: Date, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (code) params.append("code", code)
+            if (userId) params.append("userId", userId)
+            if (note) params.append("note", note)
+            if (checkDate) params.append("checkDate", checkDate.toISOString())
+
+            return `${VERSION_PREFIX}/stock-checks?${params.toString()}`
+        },
+        getStockCheckById: (id: string) => `${VERSION_PREFIX}/stock-checks/${id}`,
+        getListStockCheckIds: `${VERSION_PREFIX}/stock-checks/list-by-ids`,
+    },
+    stockCheckDetail: {
+        createStockCheckDetail: `${VERSION_PREFIX}/stock-check-details`,
+        updateStockCheckDetail: (id: string) => `${VERSION_PREFIX}/stock-check-details/${id}`,
+        deleteStockCheckDetail: (id: string) => `${VERSION_PREFIX}/stock-check-details/${id}`,
+        getStockCheckDetails: (stockCheckId?: string, ingredientId?: string, systemQty?: number, actualQty?: number, reason?: string, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (stockCheckId) params.append("stockCheckId", stockCheckId)
+            if (ingredientId) params.append("ingredientId", ingredientId)
+            if (systemQty !== undefined) params.append("systemQty", String(systemQty))
+            if (actualQty !== undefined) params.append("actualQty", String(actualQty))
+            if (reason) params.append("reason", reason)
+
+            return `${VERSION_PREFIX}/stock-check-details?${params.toString()}`
+        },
+        getStockCheckDetailById: (id: string) => `${VERSION_PREFIX}/stock-check-details/${id}`,
+        getListStockCheckDetailIds: `${VERSION_PREFIX}/stock-check-details/list-by-ids`,
+    },
+    ai: {
+        getForecast: (mode: string) => {
+            const params = new URLSearchParams()
+            params.append("mode", mode)
+            return `forecast?${params.toString()}`
+        },
+        getRecommend: (id: string) => `recommend/${id}`,
+    }
 }

@@ -134,7 +134,7 @@ export default function NotFound() {
           server.
         </p>
 
-        <Link href="/" className="btn btn-neutral">
+        <Link href="/" className="btn btn-neutral bg-darkgrey text-white px-4">
           BACK TO HOME
         </Link>
       </main>

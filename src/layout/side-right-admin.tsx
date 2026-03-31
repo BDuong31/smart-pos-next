@@ -144,11 +144,11 @@ export default function SideRightAdmin() {
 
   return (
     <aside
-      className="h-screen bg-white border-r flex flex-col"
+      className="h-screen bg-white flex flex-col"
       style={{ width: "20rem" }}
     >
       {/* LOGO */}
-      <div className="h-20 flex items-center justify-center border-b">
+      <div className="h-20 flex items-center justify-center">
         <Link href="/">
           <Image
             src="https://baso.id.vn/basoblack.png"
@@ -235,7 +235,7 @@ export default function SideRightAdmin() {
       </nav>
 
       {/* LOGOUT */}
-      <div className="p-4 border-t">
+      <div className="p-4">
         <button className="btn btn-ghost w-full justify-center">
           <LogoutRegular />
           Logout

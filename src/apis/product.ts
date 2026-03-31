@@ -1,10 +1,6 @@
 import { IApiResponse } from '@/interfaces/api-response';
 import { IConditionalProduct, IProduct, IProductCreate, IProductDetails, IProductUpdate } from '@/interfaces/product';
-import {
-  default as axios,
-  default as axiosInstance,
-  endpoints,
-} from '@/utils/axios';
+import { axiosInstance, endpoints } from '@/utils/axios';
 
 export const getProducts = async (dto: IConditionalProduct, page: number, limit: number): Promise<IApiResponse<IProductDetails[]>> => {
     try {

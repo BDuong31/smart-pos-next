@@ -1,5 +1,5 @@
 import { IApiResponse } from "@/interfaces/api-response";
-import axiosInstance, { endpoints } from "@/utils/axios";
+import { axiosInstance, endpoints } from "@/utils/axios";
 
 interface LoginParams {
     username: string;
@@ -21,6 +21,13 @@ interface RegisterResponse {
     }
 }
 
+interface ForgotPassword {
+    data: {
+        sessionId: string;
+        expiry: string;
+    }
+}
+
 interface LoginResponse  {
     accessToken: string;
 }
@@ -35,7 +42,7 @@ interface introspectResponse {
 }
 
 // Đăng ký tài khoản mới
-export const register = async (params: RegisterParams): Promise<IApiResponse<RegisterResponse>> => {
+export const register = async (params: RegisterParams): Promise<RegisterResponse> => {
     const response = await axiosInstance.post(endpoints.auth.register, params);
 
     return response.data;
@@ -49,7 +56,7 @@ export const resendVerifyOtp = async(token: string): Promise<any> => {
 }
 
 // Yêu cầu kích hoạt lại tài khoản
-export const activateAccount = async(email: string): Promise<IApiResponse<RegisterResponse>> => {
+export const activateAccount = async(email: string): Promise<RegisterResponse> => {
     const response = await axiosInstance.post(endpoints.auth.activateAccount, { email });
 
     return response.data;
@@ -72,7 +79,7 @@ export const login = async (params: LoginParams): Promise<LoginResponse> => {
 // Đăng nhập Google
 
 // Yêu cầu quên mật khẩu
-export const forgotPassword = async (email: string): Promise<IApiResponse<RegisterResponse>> => {
+export const forgotPassword = async (email: string): Promise<ForgotPassword> => {
     const response = await axiosInstance.post(endpoints.auth.forgotPassword, { email });
 
     return response.data;
@@ -84,9 +91,15 @@ export const resendForgotPasswordOtp = async(token: string): Promise<any> => {
     return response.data;
 }
 
+// Xác minh mã OTP quên mật khẩu
+export const verifyForgotPasswordOtp = async(token: string, otp: string): Promise<string> => {
+    const response = await axiosInstance.post(endpoints.auth.verifyForgotPassword, { token, otp });
+    return response.data.resetToken;
+}
+
 // Đặt lại mật khẩu bằng mã xác thực
-export const resetPassword = async(token: string, otp: string, newPassword: string): Promise<void> => {
-    const response = await axiosInstance.post(endpoints.auth.resetPassword, { token, otp, newPassword });
+export const resetPassword = async(resetToken: string, password: string, confirmPassword: string): Promise<void> => {
+    const response = await axiosInstance.patch(endpoints.auth.resetPassword, { resetToken, password, confirmPassword });
     return response.data;
 }
 

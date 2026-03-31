@@ -2,10 +2,10 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useSelector } from "react-redux";
-import { RootState } from "@/store/store";
-// import { useAuth } from '@/context/auth-context';
-
+import { useSelector, useDispatch } from "react-redux";
+import { RootState, AppDispatch } from "@/store/store";
+import { getProfile } from '@/apis/user';
+import { getMe } from '@/store/slices/userSlice'
 //-----------------------------------------------------------------------------------------------
 
 interface ProtectedRouteProps {
@@ -13,9 +13,11 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const dispatch = useDispatch<AppDispatch>();
   const isAuthenticated = useSelector(
         (state: RootState) => state.auth.isAuthenticated
   );
+  const { user } = useSelector((state: RootState) => state.user);
   
   const router = useRouter();
 
@@ -23,7 +25,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     if (!isAuthenticated) {
       router.replace('/login');
     }
-  }, [isAuthenticated, router]);
+
+    if (isAuthenticated && !user) {
+      dispatch(getMe());
+    }
+  }, [isAuthenticated, user, router]);
 
   return <>{children}</>;
 };

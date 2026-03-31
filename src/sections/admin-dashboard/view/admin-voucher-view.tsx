@@ -4,9 +4,10 @@ import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 import React, { useState, useMemo, useEffect } from 'react'; 
 import { GrFormPrevious, GrFormNext } from "react-icons/gr"; 
 import { useRouter } from 'next/navigation';
-import { ICoupon, ICouponCreate, ICouponUpdate } from '@/interfaces/coupon';
-import { createCoupon, getCoupons, updateCoupon } from '@/apis/coupon';
 import { useToast } from '@/context/toast-context';
+import { IVoucher, IVoucherCreate, IVoucherUpdate } from '@/interfaces/voucher';
+import { createVoucher, deleteVoucher, getVouchers, updateVoucher } from '@/apis/voucher';
+import { SplashScreen } from '@/components/loading';
 
 type DiscountType = 'fixed' | 'percentage';
 
@@ -40,10 +41,11 @@ function Badge({ text, type }: { text: string; type: BadgeType }) {
   return <span className={`badge badge-sm ${colorMap[type]} text-white`}>{text}</span>;
 }
 
-function StatusBadge({ expiryDate }: { expiryDate: string | Date }) {
+function StatusBadge({ expiryDate, isCheck }: { expiryDate: string | Date, isCheck: boolean }) {
   const date = expiryDate instanceof Date ? expiryDate : new Date(expiryDate);
-  const isActive = date > new Date();
-  return isActive ? <Badge text="Active" type="success" /> : <Badge text="Expired" type="error" />;
+  const isExpired = date < new Date();
+  const isActive = isCheck && !isExpired;
+  return isActive ? <Badge text="Hoạt động" type="success" /> : <Badge text="Không hoạt động" type="error" />;
 }
 
 // --- LOGIC PHÂN TRANG (Giữ nguyên) ---
@@ -85,18 +87,20 @@ const formatDateTimeForInput = (iso: string | Date | undefined) => {
 export default function VouchersPage() {
   const router = useRouter(); 
 
-  const [coupons, setCoupons] = useState<ICoupon[]>([]);
+  const [vouchers, setVouchers] = useState<IVoucher[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [totalPages, setTotalPages] = useState(0);
   const { showToast } = useToast();
-
+  const [errorUpdate, setErrorUpdate] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetcherCoupons = async () => {
+  const fetcherVouchers = async () => {
     setIsLoading(true);
     try {
-      const response = await getCoupons();
-      setCoupons(response.data || []);
+      const response = await getVouchers({}, currentPage, ITEMS_PER_PAGE);
+      setVouchers(response.data || []);
+      setTotalPages(Math.ceil(response.total / ITEMS_PER_PAGE));
     } catch (error) {
       console.error("Error fetching coupons:", error);
     } finally {
@@ -104,12 +108,13 @@ export default function VouchersPage() {
     }
   }
 
-  const createCoupons = async (dto: ICouponCreate) => {
+  const createVouchers = async (dto: IVoucherCreate) => {
     setIsLoading(true);
     try {
-      const response = await createCoupon(dto);
+      const response = await createVoucher(dto);
       if (response) {
-      fetcherCoupons();
+      fetcherVouchers();
+      showToast("Đã tạo voucher mới!", "success");
       }
     } catch (error) {
       console.error("Error creating coupon:", error);
@@ -119,26 +124,33 @@ export default function VouchersPage() {
     }
   }
 
-  const updateCoupons = async (id: string, dto: ICouponUpdate) => {
+  const updateVouchers = async (id: string, dto: IVoucherUpdate) => {
     setIsLoading(true);
     try {
-      const response = await updateCoupon(id, dto);
+      const response = await updateVoucher(id, dto);
       if (response) {
-        fetcherCoupons();
+        fetcherVouchers();
+        showToast("Đã cập nhật voucher!", "success");
       }
     } catch (error) {
+      setErrorUpdate(true);
       console.error("Error updating coupon:", error);
       showToast("Không thể cập nhật voucher!", "error");
     } finally {
+      if (!errorUpdate) {
+        fetcherVouchers();
+        showToast("Đã cập nhật voucher!", "success");
+      }
+      setErrorUpdate(false)
       setIsLoading(false);
     }
   }
 
-  const deleteCoupons = async (id: string) => {
+  const deleteVouchers = async (id: string) => {
     setIsLoading(true);
     try {
-      const response = await deleteCoupons(id);
-      fetcherCoupons();
+      const response = await deleteVoucher(id);
+      fetcherVouchers();
     } catch (error) {
       console.error("Error deleting coupon:", error);
       showToast("Không thể xóa voucher!", "error");
@@ -148,63 +160,58 @@ export default function VouchersPage() {
   }
 
   useEffect(() => {
-    fetcherCoupons();
+    fetcherVouchers();
   }, []);
 
 
 
 
-  const [newVoucher, setNewVoucher] = useState<ICouponCreate>({
+  const [newVoucher, setNewVoucher] = useState<IVoucherCreate>({
     code: '',
-    name: '',
-    description: '',
     type: 'fixed',
-    discountValue: 0,
-    minSpend: 0,
-    maxDiscount: 0,
-    totalUsageLimit: 0,
-    currentUsageCount: 0,
-    expiryDate: new Date(),
+    value: 0,
+    minOrderVal: 0,
+    usageLimit: 0,
+    isActive: true,
+    startDate: new Date(),
+    endDate: new Date(),
   });
 
   const handleCreate = async () => {
     console.log("Creating voucher:", newVoucher);
-    await createCoupons(newVoucher);
+    await createVouchers(newVoucher);
 
-    showToast("Đã tạo voucher mới!", "success");
     (document.getElementById('add_voucher_modal') as HTMLDialogElement)?.close();
     setNewVoucher({
       code: '',
-      name: '',
-      description: '',
-      type: 'fixed',
-      discountValue: 0,
-      minSpend: 0,
-      maxDiscount: 0,
-      totalUsageLimit: 0,
-      currentUsageCount: 0,
-      expiryDate: new Date(),
+      type: 'fixed_amount',
+      value: 0,
+      minOrderVal: 0,
+      usageLimit: 0,
+      isActive: true,
+      startDate: new Date(),
+      endDate: new Date(),
     });
   }
 
-  const [editingVoucher, setEditingVoucher] = useState<ICoupon | null>(null);
+  const [editingVoucher, setEditingVoucher] = useState<IVoucher | null>(null);
 
-  const [voucherToDelete, setVoucherToDelete] = useState<ICoupon | null>(null);
+  const [voucherToDelete, setVoucherToDelete] = useState<IVoucher | null>(null);
 
   
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     let newValue: number | string | Date = value;
-    if(name === 'maxDiscount' || name === 'minSpend' || name === 'totalUsageLimit' || name === 'discountValue') {
+    if(name === 'value' || name === 'minOrderVal' || name === 'usageLimit') {
       newValue = parseFloat(value);
-    } else if (name === 'expiryDate') {
+    } else if (name === 'endDate' || name === 'startDate') {
       newValue = new Date(value);
     }
     setNewVoucher(prev => ({ ...prev, [name]: newValue }));
   };
   
   // --- LOGIC CHO MODAL "EDIT" (Giữ nguyên) ---
-  const handleOpenEditModal = (voucher: ICoupon) => {
+  const handleOpenEditModal = (voucher: IVoucher) => {
     console.log("Editing voucher:", voucher);
     setEditingVoucher(voucher);
     (document.getElementById('edit_voucher_modal') as HTMLDialogElement)?.showModal();
@@ -214,29 +221,39 @@ export default function VouchersPage() {
     console.log("Editing voucher:", editingVoucher);
     if (!editingVoucher) return;
     const { name, value } = e.target;
-    const newValue = (name === 'discountValue') ? parseFloat(value) : value;
+    let newValue: number | string | Date = value;
+    if(name === 'value' || name === 'minOrderVal' || name === 'usageLimit') {
+      newValue = parseFloat(value);
+    } else if (name === 'endDate' || name === 'startDate') {
+      newValue = new Date(value);
+    } else if (name === 'isActive') {
+      newValue = e.target.checked;
+    }
     setEditingVoucher(prev => ({ ...prev!, [name]: newValue }));
   };
 
   const handleUpdate = async () => {
     if (!editingVoucher) return;
 
-    const dataUpdate: ICouponUpdate = {
+    const dataUpdate: IVoucherUpdate = {
       code: editingVoucher.code,
       type: editingVoucher.type,
-      discountValue: editingVoucher.discountValue,
-      expiryDate: new Date(editingVoucher.expiryDate),
+      value: editingVoucher.value,
+      minOrderVal: editingVoucher.minOrderVal,
+      usageLimit: editingVoucher.usageLimit,
+      isActive: editingVoucher.isActive,
+      startDate: editingVoucher.startDate,
+      endDate: editingVoucher.endDate,
     };
 
-    await updateCoupons(editingVoucher.id, dataUpdate);
+    await updateVouchers(editingVoucher.id, dataUpdate);
 
-    showToast("Đã cập nhật voucher!", "success");
     (document.getElementById('edit_voucher_modal') as HTMLDialogElement)?.close();
     setEditingVoucher(null);
   };
 
   
-  const handleOpenDeleteModal = (voucher: ICoupon) => {
+  const handleOpenDeleteModal = (voucher: IVoucher) => {
     setVoucherToDelete(voucher);
     (document.getElementById('delete_voucher_modal') as HTMLDialogElement)?.showModal();
   };
@@ -246,30 +263,12 @@ export default function VouchersPage() {
 
     console.log("Deleting voucher:", voucherToDelete.id);
 
-    await deleteCoupons(voucherToDelete.id);
+    await deleteVouchers(voucherToDelete.id);
 
-    showToast("Đã xóa voucher!", "success");      
     // Đóng modal
     (document.getElementById('delete_voucher_modal') as HTMLDialogElement)?.close();
     setVoucherToDelete(null);
   };
-
-  // --- Logic tính toán cho danh sách (Giữ nguyên) ---
-  const filteredCoupons = useMemo(() => {
-    return coupons.filter(e => 
-      e.code.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [searchTerm, coupons]);
-
-  const totalPages = useMemo(() => {
-    return Math.ceil(filteredCoupons.length / ITEMS_PER_PAGE); 
-  }, [filteredCoupons]);
-
-  const currentVouchers = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    return filteredCoupons.slice(startIndex, endIndex); 
-  }, [currentPage, filteredCoupons]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -293,6 +292,9 @@ export default function VouchersPage() {
     return d.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
+  if (isLoading) {
+    return <SplashScreen className="h-[100vh]"/>
+  }
 
   // --- JSX ---
   return (
@@ -300,19 +302,15 @@ export default function VouchersPage() {
       
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Voucher Management</h1>
-          <p className="text-base-content/70 text-sm">Home &gt; Vouchers</p>
+          <h1 className="text-3xl font-bold">Quản lý mã khuyến mãi</h1>
+          <p className="text-base-content/70 text-sm">Trang chủ &gt; mã khuyến mãi</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-          <label className="input bg-transparent border border-graymain flex items-center gap-2 w-full sm:w-auto">
-            <input type="text" className="grow border-none" placeholder="Search by voucher code" value={searchTerm} onChange={handleSearchChange} />
-            <Search size={16} className="opacity-50" />
-          </label>
           <button 
-            className="btn btn-neutral"
+            className="btn btn-neutral bg-darkgrey text-white px-2"
             onClick={() => (document.getElementById('add_voucher_modal') as HTMLDialogElement)?.showModal()}
           >
-            <Plus size={18} /> ADD NEW VOUCHER
+            <Plus size={18} /> THÊM MÃ KHUYẾN MÃI
           </button>
         </div>
       </div>
@@ -323,49 +321,53 @@ export default function VouchersPage() {
             <table className="table">
               <thead className="text-base-content/70">
                 <tr>
-                  <th className='px-1 text-center'>Voucher Name</th>
-                  <th className='px-1 text-center'>Voucher Code</th>
-                  <th className='px-1 text-center'>Type</th>
-                  <th className='px-1 text-center'>Discount Value</th>
-                  <th className='px-1 text-center'>Minimum Spend</th>
-                  <th className='px-1 text-center'>Maximum Discount</th>
-                  <th className='px-1 text-center'>Total Usage Limit</th>
-                  <th className='px-1 text-center'>Status</th>
-                  <th className='px-1 text-center'>Expires At</th>
-                  <th className='px-1 text-center'>Actions</th>
+                  <th className='px-1 text-center'>Mã khuyến mãi</th>
+                  <th className='px-1 text-center'>Loại</th>
+                  <th className='px-1 text-center'>Giá trị</th>
+                  <th className='px-1 text-center'>Giá trị tối thiểu</th>
+                  <th className='px-1 text-center'>Tổng lượt sử dụng</th>
+                  <th className='px-1 text-center'>Tình trạng</th>
+                  <th className='px-1 text-center'>Ngày bắt đầu</th>
+                  <th className='px-1 text-center'>Ngày hết hạn</th>
+                  <th className='px-1 text-center'>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredCoupons.map((voucher) => (
-                  <tr key={voucher.id} className="hover">
-                    <td className='text-center'>{voucher.name}</td>
-                    <td className='text-center'><div className="font-bold">{voucher.code}</div></td>
-                    <td className='text-center'>{voucher.type === 'fixed' ? 'Fixed Amount' : 'Percentage'}</td>
-                    <td className='text-center'>{formatValue(voucher.discountValue, voucher.type)}</td>
-                    <td className='text-center'>{formatValue(voucher.minSpend, 'fixed')}</td>
-                    <td className='text-center'>{formatValue(voucher.maxDiscount, 'fixed')}</td>
-                    <td className='text-center'>{voucher.totalUsageLimit}</td>
-                    <td className='text-center'><StatusBadge expiryDate={voucher.expiryDate} /></td>
-                    <td className='text-center'>{formatDate(voucher.expiryDate)}</td>
-                    <td className='text-center'>
-                      <div className="flex gap-1">
-                        {/* NÚT EDIT */}
-                        <button 
-                          className="btn btn-ghost btn-circle btn-sm"
-                          onClick={() => handleOpenEditModal(voucher)}
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button 
-                          className="btn btn-ghost btn-circle btn-sm text-error"
-                          onClick={() => handleOpenDeleteModal(voucher)}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
+                {vouchers && vouchers.length > 0 ? (
+                  vouchers.map((voucher) => (
+                    <tr key={voucher.id} className="hover">
+                      <td className='text-center'><div className="font-bold">{voucher.code}</div></td>
+                      <td className='text-center'>{voucher.type === 'fixed' ? 'Fixed Amount' : 'Percentage'}</td>
+                      <td className='text-center'>{formatValue(voucher.value, voucher.type)}</td>
+                      <td className='text-center'>{formatValue(voucher.minOrderVal, 'fixed')}</td>
+                      <td className='text-center'>{voucher.usageLimit}</td>
+                      <td className='text-center'><StatusBadge expiryDate={voucher.endDate} isCheck={voucher.isActive} /></td>
+                      <td className='text-center'>{formatDate(voucher.startDate)}</td>
+                      <td className='text-center'>{formatDate(voucher.endDate)}</td>
+                      <td className='text-center'>
+                        <div className="flex gap-1">
+                          {/* NÚT EDIT */}
+                          <button 
+                            className="btn btn-ghost btn-circle btn-sm"
+                            onClick={() => handleOpenEditModal(voucher)}
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button 
+                            className="btn btn-ghost btn-circle btn-sm text-error"
+                            onClick={() => handleOpenDeleteModal(voucher)}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={10} className="text-center py-4 font-bold">Không có dữ liệu</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -385,35 +387,65 @@ export default function VouchersPage() {
               <button onClick={goToNextPage} disabled={currentPage === totalPages} className="p-2 border rounded-xl disabled:opacity-50 hover:bg-gray-100 transition flex items-center gap-1 font-semibold uppercase px-4">NEXT <GrFormNext size={18} /></button>
           </div>
       )}
-      <dialog id="edit_voucher_modal" className="modal">
-        <div className="modal-box w-11/12 max-w-2xl">
-          <h3 className="font-bold text-lg">Edit Voucher: {editingVoucher?.code}</h3>
+
+      <dialog id="add_voucher_modal" className="modal">
+        <div className='modal-box w-11/12 max-w-2xl'>
+          <h3 className="font-bold text-lg">Thêm mã khuyến mãi</h3>
           <div className="py-4 space-y-4">
-            <div className="form-control"><label className="label"><span className="label-text font-semibold">Voucher Name</span></label><input type="text" name="name" value={editingVoucher?.name || ''} onChange={handleEditFormChange} className="input input-bordered" placeholder="e.g., Summer Sale" /></div>
-            <div className="form-control"><label className="label"><span className="label-text font-semibold">Voucher Description</span></label><input type="text" name="description" value={editingVoucher?.description || ''} onChange={handleEditFormChange} className="input input-bordered" placeholder="e.g., 50% off on all items" /></div>
-            <div className="form-control"><label className="label"><span className="label-text font-semibold">Voucher Code</span></label><input type="text" name="code" value={editingVoucher?.code || ''} onChange={handleEditFormChange} className="input input-bordered" /></div>
+            <div className="form-control"><label className="label"><span className="label-text font-semibold mr-2">Mã khuyến mãi</span></label><input type="text" name="code" value={newVoucher.code} onChange={handleFormChange} className="input input-bordered rounded-lg" /></div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">Discount Type</span>
+                  <span className="label-text font-semibold">Loại</span>
                 </label>
-                <select name="type" className="select select-bordered" value={editingVoucher?.type || 'fixed'} onChange={handleEditFormChange}>
-                  <option value="fixed">Fixed Amount</option>
-                  <option value="percentage">Percentage</option>
+                <select name="type" className="select select-bordered" value={newVoucher.type} onChange={handleFormChange}>
+                  <option value="fixed_amount">Số tiền cố định</option>
+                  <option value="percentage">Phần trăm</option>
                 </select>
               </div>
-              <div className="form-control"><label className="label"><span className="label-text font-semibold">Discount Value</span></label><input type="number" name="discountValue" value={editingVoucher?.discountValue || 0} onChange={handleEditFormChange} className="input input-bordered" /></div>
+              <div className="form-control"><label className="label"><span className="label-text font-semibold mr-2">Giá trị</span></label><input type="number" name="value" value={newVoucher.value > 0 ? newVoucher.value : ''} onChange={handleFormChange} placeholder='e.g. 100.000' className="input input-bordered rounded-lg" /></div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="form-control"><label className="label"><span className="label-text font-semibold">Minimum Spend</span></label><input type="number" name="minSpend" value={editingVoucher?.minSpend} onChange={handleEditFormChange} className="input input-bordered" placeholder="e.g., 200000 (cho 200.000đ)" /></div>
-              <div className="form-control"><label className="label"><span className="label-text font-semibold">Maximum Discount</span></label><input type="number" name="maxDiscount" value={editingVoucher?.maxDiscount} onChange={handleEditFormChange} className="input input-bordered" placeholder="e.g., 100000 (cho 100.000đ)" /></div>
+              <div className="form-control"><label className="label"><span className="label-text font-semibold mr-2">Giá trị tối thiểu</span></label><input type="number" name="minOrderVal" value={newVoucher.minOrderVal > 0 ? newVoucher.minOrderVal : ''} onChange={handleFormChange} className="input input-bordered rounded-lg" placeholder="e.g., 200000 (cho 200.000đ)" /></div>
+              <div className="form-control"><label className="label"><span className="label-text font-semibold mr-2">Tổng lượt sử dụng</span></label><input type="number" name="usageLimit" value={newVoucher.usageLimit > 0 ? newVoucher.usageLimit : ''} onChange={handleFormChange} className="input input-bordered rounded-lg" placeholder="e.g., 100 (cho 100 lần sử dụng)" /></div>
             </div>
-            <div className="form-control"><label className="label"><span className="label-text font-semibold">Total Usage Limit</span></label><input type="number" name="totalUsageLimit" value={editingVoucher?.totalUsageLimit} onChange={handleFormChange} className="input input-bordered" placeholder="e.g., 100 (cho 100 lần sử dụng)" /></div>
-            <div className="form-control"><label className="label"><span className="label-text font-semibold">Expiry Date</span></label><input type="datetime-local" name="expiryDate" value={formatDateTimeForInput(editingVoucher?.expiryDate || '')} onChange={handleEditFormChange} className="input input-bordered" /></div>
+            <div className="form-control"><label className="label"><span className="label-text font-semibold mr-2">Ngày bắt đầu</span></label><input type="datetime-local" name="startDate" value={formatDateTimeForInput(newVoucher.startDate)} onChange={handleFormChange} className="input input-bordered rounded-lg" /></div>
+            <div className="form-control"><label className="label"><span className="label-text font-semibold mr-2">Ngày hết hạn</span></label><input type="datetime-local" name="endDate" value={formatDateTimeForInput(newVoucher.endDate)} onChange={handleFormChange} className="input input-bordered rounded-lg" /></div>
           </div>
           <div className="modal-action">
-            <form method="dialog"><button className="btn" onClick={() => setEditingVoucher(null)}>Cancel</button></form>
-            <button className="btn btn-neutral" onClick={handleUpdate}>Save Changes</button>
+            <form method="dialog"><button className="btn mr-2" onClick={() => setEditingVoucher(null)}>Huỷ</button></form>
+            <button className="btn btn-primary bg-darkgrey text-white px-2" onClick={handleCreate}>Tạo</button>
+          </div>
+        </div>
+      </dialog>
+      <dialog id="edit_voucher_modal" className="modal">
+        <div className="modal-box w-11/12 max-w-2xl">
+          <h3 className="font-bold text-lg">Chỉnh sửa mã khuyến mãi: {editingVoucher?.code}</h3>
+          <div className="py-4 space-y-4">
+            <div className="form-control"><label className="label"><span className="label-text font-semibold mr-2">Mã khuyến mãi</span></label><input type="text" name="code" value={editingVoucher?.code || ''} onChange={handleEditFormChange} className="input input-bordered rounded-lg" /></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold mr-2">Loại</span>
+                </label>
+                <select name="type" className="select select-bordered" value={editingVoucher?.type || 'fixed_amount'} onChange={handleEditFormChange}>
+                  <option value="fixed_amount">Số tiền cố định</option>
+                  <option value="percentage">Phần trăm</option>
+                </select>
+              </div>
+              <div className="form-control"><label className="label"><span className="label-text font-semibold">Giá trị</span></label><input type="number" name="value" value={editingVoucher?.value || 0} onChange={handleEditFormChange} className="input input-bordered rounded-lg" /></div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="form-control"><label className="label"><span className="label-text font-semibold mr-2">Giá trị tối thiểu</span></label><input type="number" name="minOrderVal" value={editingVoucher?.minOrderVal} onChange={handleEditFormChange} className="input input-bordered rounded-lg" placeholder="e.g., 200000 (cho 200.000đ)" /></div>
+              <div className="form-control"><label className="label"><span className="label-text font-semibold mr-2">Tổng lượt sử dụng</span></label><input type="number" name="usageLimit" value={editingVoucher?.usageLimit} onChange={handleEditFormChange} className="input input-bordered rounded-lg" placeholder="e.g., 100 (cho 100 lần sử dụng)" /></div>
+            </div>
+            <div className="form-control"><label className="label"><span className="label-text font-semibold mr-2">Ngày bắt đầu</span></label><input type="datetime-local" name="startDate" value={formatDateTimeForInput(editingVoucher?.startDate || '')} onChange={handleEditFormChange} className="input input-bordered rounded-lg" /></div>
+            <div className="form-control"><label className="label"><span className="label-text font-semibold mr-2">Ngày hết hạn</span></label><input type="datetime-local" name="endDate" value={formatDateTimeForInput(editingVoucher?.endDate || '')} onChange={handleEditFormChange} className="input input-bordered rounded-lg" /></div>
+            <div className="form-control"><label className="label"><span className="label-text font-semibold mr-2">Trạng thái</span></label><input type="checkbox" name="isActive" checked={editingVoucher?.isActive} onChange={handleEditFormChange} className="checkbox" /></div>
+          </div>
+          <div className="modal-action">
+            <form method="dialog"><button className="btn mr-2" onClick={() => setEditingVoucher(null)}>Huỷ</button></form>
+            <button className="btn btn-neutral bg-darkgrey text-white px-2" onClick={handleUpdate}>Lưu thay đổi</button>
           </div>
         </div>
         <form method="dialog" className="modal-backdrop"><button onClick={() => setEditingVoucher(null)}>close</button></form>
@@ -431,14 +463,14 @@ export default function VouchersPage() {
           <div className="modal-action">
             <form method="dialog">
               {/* Nút Cancel */}
-              <button className="btn" onClick={() => setVoucherToDelete(null)}>Cancel</button>
+              <button className="btn mr-2" onClick={() => setVoucherToDelete(null)}>Huỷ</button>
             </form>
             {/* Nút Delete */}
             <button 
-              className="btn btn-error" 
+              className="btn btn-error bg-error text-white px-2"
               onClick={handleConfirmDelete}
             >
-              Delete
+              Xoá
             </button>
           </div>
         </div>

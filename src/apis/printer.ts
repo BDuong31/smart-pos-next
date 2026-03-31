@@ -1,4 +1,4 @@
-import axiosInstance, { endpoints } from "@/utils/axios"
+import { axiosInstance, endpoints } from "@/utils/axios"
 import { IPrinterCreate, IPrinterUpdate } from "@/interfaces/printer"
 import { IApiResponse } from "@/interfaces/api-response"
 import { IPrinter } from "@/interfaces/printer"

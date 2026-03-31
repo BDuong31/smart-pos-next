@@ -1,10 +1,6 @@
 import { IApiResponse } from "@/interfaces/api-response";
 import { IConditionalVariant, IVariant } from "@/interfaces/variant";
-import {
-  default as axios,
-  default as axiosInstance,
-  endpoints,
-} from "@/utils/axios";
+import { axiosInstance, endpoints } from "@/utils/axios";
 
 export const getVariants = async (dto: IConditionalVariant, page: number, limit: number): Promise<IApiResponse<IVariant[]>> => {
     try {

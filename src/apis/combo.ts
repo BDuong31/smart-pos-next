@@ -4,7 +4,7 @@ import {
   default as axiosInstance,
   endpoints,
 } from '@/utils/axios';
-import { ICombo, IComboCreate, IComboUpdate, IComboItem, IComboItemCreate, IComboItemUpdate } from '@/interfaces/combo';
+import { ICombo, IComboCreate, IComboUpdate, IComboItem, IComboItemCreate, IComboItemUpdate, IComboItemDetail } from '@/interfaces/combo';
 
 // API for combo
 // tạo combo
@@ -99,7 +99,7 @@ export const deleteComboItem = async (id: string) => {
 }
 
 // lấy danh sách combo item
-export const getComboItems = async (comboId?: string, productId?: string, variant?: string, quantity?: number, page?: number, limit?: number): Promise<IApiResponse<IComboItem[]>> => {
+export const getComboItems = async (comboId?: string, productId?: string, variant?: string, quantity?: number, page?: number, limit?: number): Promise<IApiResponse<IComboItemDetail[]>> => {
     try {
         const response = await axiosInstance.get(endpoints.combo.getComboItems(comboId, productId, variant, quantity, page, limit));
         return response.data;
@@ -120,7 +120,7 @@ export const getComboItemsByIds = async (ids: string[]): Promise<IApiResponse<IC
 
 
 // lấy combo item theo id
-export const getComboItemById = async (id: string): Promise<IApiResponse<IComboItem>> => {
+export const getComboItemById = async (id: string): Promise<IApiResponse<IComboItemDetail>> => {
     try {
         const response = await axiosInstance.get(endpoints.combo.getComboItemById(id));
         return response.data;

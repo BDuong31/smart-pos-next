@@ -83,7 +83,7 @@ export default function LoginView() {
             <div className="w-[40%] py-20 rounded-lg justify-items-center">
                 <h1 className="text-2xl font-bold mb-4">Đăng nhập</h1>
                 <form onSubmit={handleLogin}>
-                    <div className="flex flex-col gap-3.5 mb-[1.5rem]">
+                    <div className="flex flex-col gap-3.5 mb-2">
                         <DebouncedInput
                             type="text"
                             name="username"
@@ -110,6 +110,15 @@ export default function LoginView() {
                             </div>
                         </div>
                         {passwordError && <p className="text-[#FF0000] text-sm">{passwordError}</p>}
+                    </div>
+                    <div className="flex justify-end mb-6">
+                        <button
+                            type="button"
+                            onClick={() => router.push('/forgot-password')}
+                            className="text-sm text-blue-500 hover:underline"
+                        >
+                            Quên mật khẩu?
+                        </button>
                     </div>
                     <div>
                         <button

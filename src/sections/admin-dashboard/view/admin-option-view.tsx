@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import SplashScreen from "@/components/loading/splash-sceen";
 
 // interfaces
-import { IOption, IOptionItem } from "@/interfaces/option";
+import { IOption, IOptionItem, IOptionItemCreate } from "@/interfaces/option";
 
 // apis
 import {
@@ -23,18 +23,15 @@ import { useToast } from "@/context/toast-context";
 import { useDropzone } from "react-dropzone";
 import Image from "next/image";
 import ImageRegular from "@/components/icons/image";
-
-const MAX_IMAGES = 1;
-interface FileWithPreview {
-  file: File;
-  preview: string;
-}
+import { IImage, IImageCreate } from "@/interfaces/image";
+import { deleteImage, uploadImage } from "@/apis/image";
+import { set } from "zod";
+import BinRegular from "@/components/icons/bin";
 
 export default function OptionsPage() {
   const [optionList, setOptionList] = useState<IOption[]>([]);
   const [optionItems, setOptionItems] = useState<IOptionItem[]>([]);
   const [selectedOption, setSelectedOption] = useState<IOption | null>(null);
-  const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [coverImage, setCoverImage] = useState<string | null>(null);
 
   const router = useRouter();
@@ -42,6 +39,9 @@ export default function OptionsPage() {
   const [isLoading, setLoading] = useState(true);
 
   // ================= MODAL STATE =================
+  const [existingImages, setExistingImages] = useState<IImage>();
+  const [imageToDelete, setImageToDelete] = useState<string>();
+  const [newImageFiles, setNewImageFiles] = useState<File>();
   const [editingOption, setEditingOption] = useState<IOption | null>(null);
 
   const [editingItem, setEditingItem] = useState<IOptionItem | null>(null);
@@ -109,58 +109,49 @@ export default function OptionsPage() {
     await deleteOption(id);
     setSelectedOption(null);
     fetchOptions();
+    (document.getElementById('delete_option_modal') as HTMLDialogElement)?.close()
   }
 
   // ================ Upload ================
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (files.length + acceptedFiles.length > MAX_IMAGES) {
-      showToast(`Chỉ được chọn tối đa ${MAX_IMAGES} ảnh`, "error");
-      return;
-    }
+    if (acceptedFiles.length === 0) return;
 
-    const newFilesMapped: FileWithPreview[] = acceptedFiles.map((file) => ({
-      file,
-      preview: URL.createObjectURL(file),
-    }));
+    const file = acceptedFiles[0];
 
-    setFiles(prev => {
-      const updated = [...prev, ...newFilesMapped];
-      if (!coverImage && updated.length > 0) {
-        setCoverImage(updated[0].preview);
-      }
-
-      return updated;
-    })
-  }, [files, showToast, coverImage]);
-
-  const isGalleryFull = files.length >= MAX_IMAGES;
+    setNewImageFiles(file);
+    setCoverImage(URL.createObjectURL(file));
+  }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { "image/*": [],},
-    disabled: isGalleryFull
   });
-
-  const handleRemoveIamge = (e: React.MouseEvent, previewToRemove: string) => {
-    e.stopPropagation();
-
-    const newFilesList = files.filter(item => item.preview !== previewToRemove);
-    setFiles(newFilesList);
-
-    if (coverImage === previewToRemove) {
-      setCoverImage(newFilesList.length > 0 ? newFilesList[0].preview : null);
-    }
-
-    URL.revokeObjectURL(previewToRemove);
-  }
 
   const handleSetCoverImage = (imageToSet: string) => {
     setCoverImage(imageToSet);
   }
 
+  const handleRemoveImage = (e: React.MouseEvent, ref: string, type: 'existing' | 'new') => {
+    e.stopPropagation();
+
+    if (type === 'existing') {
+      // xóa ảnh đã tồn tại
+      setImageToDelete(existingImages?.id);
+      setExistingImages(undefined);
+      setCoverImage(null);
+    } else {
+      // xóa ảnh mới chọn
+      setNewImageFiles(undefined);
+      setCoverImage(null);
+    }
+  }
+
   // ================= ITEM =================
   const openCreateItem = () => {
     setFormItem({ name: "", priceExtra: 0 });
+    setExistingImages(undefined);
+    setNewImageFiles(undefined);
+    setCoverImage(null);
   };
 
   const openEditItem = (item: IOptionItem) => {
@@ -169,25 +160,119 @@ export default function OptionsPage() {
       name: item.name,
       priceExtra: item.priceExtra,
     });
+    setExistingImages(item.images?.find(img => img.isMain));
+    setNewImageFiles(undefined);
+    setCoverImage(item.images?.find(img => img.isMain)?.url || null);
   };
 
-  const handleSaveItem = async () => {
-    if (!selectedOption) return;
+  const handleCreateItem = async () => {
+    setLoading(true);
 
-    if (editingItem) {
-      await updateOptionItem(editingItem.id, formItem);
-    } else {
-      await createOptionItem({
-        ...formItem,
-        groupId: selectedOption.id,
-      });
+    if (formItem.name === ''){
+      showToast("Tên mục không được để trống", "error");
+      setLoading(false);
+      return;
     }
 
+    if (!coverImage) {
+      showToast("Vui lòng chọn ảnh minh họa cho mục", "error");
+      setLoading(false);
+      return;
+    }
+
+    if (!selectedOption) return;
+
+    let newItemId: string | undefined = undefined;
+    try {
+      const itemPayload: IOptionItemCreate = {
+        name: formItem.name,
+        priceExtra: formItem.priceExtra,
+        groupId: selectedOption.id,
+      };
+
+      const itemResponse = await createOptionItem(itemPayload);
+      // if (!itemResponse) {
+      //   showToast("Có lỗi xảy ra khi tạo mục", "error");
+      // };
+
+      newItemId = itemResponse.id;
+
+      const imagePayload: IImageCreate = {
+        isMain: true,
+        refId: newItemId,
+        type: "option",
+      }
+
+      await uploadImage(imagePayload, newImageFiles as File);
+
+      showToast("Tạo mục thành công", "success");
+    } catch (error) {
+      showToast("Có lỗi xảy ra khi tạo mục", "error");
+      console.error("Failed to create item:", error);
+    } finally {
+      setLoading(false);
+    }
     fetchItems();
   };
 
-  const handleDeleteItem = async (id: string) => {
+  const handleUpdateItem = async () => {
+    setLoading(true);
+
+    if (formItem.name === ''){  
+      showToast("Tên mục không được để trống", "error");
+      setLoading(false);
+      return;
+    }
+
+    if (!coverImage) {
+      showToast("Vui lòng chọn ảnh minh họa cho mục", "error");
+      setLoading(false);
+      return;
+    }
+
+    if (!editingItem) return;
+
+    try {
+      const itemPayload = {
+        name: formItem.name,
+        priceExtra: formItem.priceExtra,
+      };
+
+      await updateOptionItem(editingItem.id, itemPayload);
+
+      if (newImageFiles) {  
+        const imagePayload: IImageCreate = {
+          isMain: true, 
+          refId: editingItem.id,
+          type: "option",
+        } 
+
+        await uploadImage(imagePayload, newImageFiles as File);
+        
+        if (imageToDelete) {
+          await deleteImage(imageToDelete);
+          setImageToDelete(undefined);
+        }
+      } else if (existingImages && existingImages.url !== coverImage) {
+        // trường hợp chỉ đổi ảnh cover giữa các ảnh đã tồn tại
+      }
+    } catch (error) {
+      showToast("Có lỗi xảy ra khi cập nhật mục", "error");
+    } finally {
+      setLoading(false);
+    }
+
+    fetchItems();
+  }
+
+  const handleDeleteItem = async (id: string, imageId: string) => {
+    console.log("Deleting item with id:", id, "and imageId:", imageId);
     await deleteOptionItem(id);
+    if (imageId && imageId !== ''){
+      await deleteImage(imageId);
+    }
+
+    (document.getElementById('delete_item_modal') as HTMLDialogElement)?.close()
     fetchItems();
   }
 
@@ -291,32 +376,49 @@ export default function OptionsPage() {
             <div className="space-y-3">
                 {optionItems.length > 0 ? (
                 optionItems.map((item) => (
-                    <div
+                  <div
                     key={item.id}
                     className="flex justify-between items-center border rounded-xl p-4 hover:shadow-sm transition"
-                    >
-                    <div>
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-sm text-green-600">
-                        +{item.priceExtra} VNĐ
-                        </p>
+                  >
+                    <div className="flex items-center gap-6">
+                      <div className="rounded-2xl">
+                        <Image
+                          src={item.images?.[0]?.url || "https://placehold.co/600x400?text=No+Image"}
+                          alt={item.name}
+                          width={80}
+                          height={80}
+                          className="rounded-lg object-cover w-20 h-20"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-4">
+                          <div><p className="font-medium">{item.name}</p></div>
+                          <div><p className="text-sm text-success">
+                          +{item.priceExtra} VNĐ
+                          </p></div>
+                      </div>
                     </div>
 
                     <div className="flex gap-2">
                         <button
-                        onClick={() => openEditItem(item)}
+                        onClick={(e) => {
+                          openEditItem(item);
+                          (document.getElementById('edit_item_modal') as HTMLDialogElement)?.showModal()
+                        }}
                         className="btn btn-xs btn-outline bg-graymain text-white px-2 py-4"
                         >
                         Sửa
                         </button>
                         <button
-                        onClick={() => handleDeleteItem(item.id)}
+                        onClick={() => {
+                          setEditingItem(item);
+                          (document.getElementById('delete_item_modal') as HTMLDialogElement)?.showModal()
+                        }}
                         className="btn btn-xs btn-error bg-error text-white px-2 py-4"
                         >
                         Xóa
                         </button>
                     </div>
-                    </div>
+                  </div>
                 ))
                 ) : (
                 <div className="text-center py-10 text-base-content/50">
@@ -437,7 +539,20 @@ export default function OptionsPage() {
                 placeholder="e.g., 5000"
               />
             </div>
-            <div className="form-control">
+            <div className="form-control relative">
+              { coverImage && (
+                <button type="button" className="btn btn-sm absolute bg-error px-2 py-4 w-8 rounded-full right-0 top-0" onClick={() => {
+                  if (existingImages || newImageFiles) {
+                    setExistingImages(undefined);
+                    setNewImageFiles(undefined);
+                    setCoverImage(null);
+                  } else {
+                    (document.getElementById('image_upload_modal') as HTMLDialogElement)?.showModal();
+                  } 
+                }}>
+                  <BinRegular />
+                </button>
+              )}
               <label className="label w-full mb-1"><span className="label-text font-semibold">Ảnh minh họa</span></label>
               {coverImage ? (
                 <div className='p-2 bg-gray rounded-2xl mb-4'>
@@ -456,22 +571,20 @@ export default function OptionsPage() {
                     border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center 
                     text-center h-48
                     ${isDragActive ? 'border-primary bg-primary/10' : 'border-gray-300'}
-                    ${isGalleryFull || isLoading ? 'cursor-not-allowed bg-base-200 opacity-60' : 'cursor-pointer'}
                   `}
                 >
                   <input {...getInputProps()} />
                   <ImageRegular width={48} height={48} className="text-base-content/50" />
                   <p className="mt-2 text-sm text-base-content/70">
-                    {isGalleryFull ? `Đã đạt giới hạn (${MAX_IMAGES} ảnh)` : isDragActive ? 'Thả ảnh vào đây' : 'Kéo thả hoặc chọn ảnh'}
+                    {isDragActive ? 'Thả ảnh vào đây' : 'Kéo thả hoặc chọn ảnh'}
                   </p>
-                  <p className="text-xs text-base-content/50">Max {MAX_IMAGES} images.</p>
                 </div>
               )}
             </div>
           </div>
           <div className="modal-action">
             <form method="dialog"><button className="btn">Huỷ</button></form>
-            <button className="btn btn-neutral bg-darkgrey text-white px-2" onClick={handleSaveItem}>Lưu</button>
+            <button className="btn btn-neutral bg-darkgrey text-white px-2" onClick={handleCreateItem}>Lưu</button>
           </div>
         </div>
         <form method="dialog" className="modal-backdrop"><button onClick={() => ('')}>close</button></form>
@@ -503,10 +616,52 @@ export default function OptionsPage() {
                 placeholder="e.g., 5000"
               />
             </div>
+            <div className="form-control relative">
+              { coverImage && (
+                <button type="button" className="btn btn-sm absolute bg-error px-2 py-4 w-8 rounded-full right-0 top-0" onClick={() => {
+                  if (existingImages || newImageFiles) {
+                    setExistingImages(undefined);
+                    setNewImageFiles(undefined);
+                    setCoverImage(null);
+                  } else {
+                    (document.getElementById('image_upload_modal') as HTMLDialogElement)?.showModal();
+                  } 
+                }}>
+                  <BinRegular />
+                </button>
+              )}
+              <label className="label w-full mb-1"><span className="label-text font-semibold">Ảnh minh họa</span></label>
+              {coverImage ? (
+                <div className='bg-gray rounded-2xl'>
+                  <Image 
+                    src={coverImage || "https://placehold.co/600x400?text=Cover+Image"} 
+                    alt="Product Cover Image"
+                    width={500}
+                    height={500}
+                    className="w-full h-auto aspect-square object-cover rounded-lg bg-base-200"
+                  />
+                </div>
+              ) : (
+                <div 
+                  {...getRootProps()} 
+                  className={`
+                    border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center
+                    text-center h-48
+                    ${isDragActive ? 'border-primary bg-primary/10' : 'border-gray-300'}
+                  `}
+                >
+                  <input {...getInputProps()} />
+                  <ImageRegular width={48} height={48} className="text-base-content/50" />
+                  <p className="mt-2 text-sm text-base-content/70">
+                    {isDragActive ? 'Thả ảnh vào đây' : 'Kéo thả hoặc chọn ảnh'}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
           <div className="modal-action">
             <form method="dialog"><button className="btn">Huỷ</button></form>
-            <button className="btn btn-neutral bg-darkgrey text-white px-2" onClick={handleSaveItem}>Lưu</button>
+            <button className="btn btn-neutral bg-darkgrey text-white px-2" onClick={handleCreateItem}>Lưu</button>
           </div>
         </div>
         <form method="dialog" className="modal-backdrop"><button onClick={() => ('')}>close</button></form>
@@ -523,7 +678,9 @@ export default function OptionsPage() {
           </p>
           <div className="modal-action">
             <form method="dialog"><button className="btn">Huỷ</button></form>
-            <button className="btn btn-error bg-error text-white px-2" onClick={() => handleDeleteOption(selectedOption!.id)}>Xóa</button>
+            <button className="btn btn-error bg-error text-white px-2" onClick={() => { 
+              handleDeleteOption(selectedOption!.id)
+            }}>Xóa</button>
           </div>
         </div>
         <form method="dialog" className="modal-backdrop"><button onClick={() => ('')}>close</button></form>
@@ -540,7 +697,9 @@ export default function OptionsPage() {
           </p>
           <div className="modal-action">
             <form method="dialog"><button className="btn">Huỷ</button></form>
-            <button className="btn btn-error bg-error text-white px-2" onClick={() => handleDeleteItem(editingItem!.id)}>Xóa</button>
+            <button className="btn btn-error bg-error text-white px-2" onClick={() => { 
+              handleDeleteItem(editingItem!.id, editingItem!.images[0]?.id || '')
+            }}>Xóa</button>
           </div>
         </div>
         <form method="dialog" className="modal-backdrop"><button onClick={() => ('')}>close</button></form>

@@ -21,7 +21,7 @@ export default function RootLayout({
   return (
     <div className='flex'>
         <SideRightAdmin />
-        <div className='flex flex-col self-start w-full'>
+        <div className='flex flex-col self-start w-full max-h-screen overflow-auto'>
           <HeaderAdmin />
           {children}
         </div>

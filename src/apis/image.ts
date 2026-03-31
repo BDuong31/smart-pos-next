@@ -1,10 +1,6 @@
 import { IApiResponse } from '@/interfaces/api-response';
 import { IConditionalImage, IImage, IImageCreate, IImageUpdate } from '@/interfaces/image';
-import {
-  default as axios,
-  default as axiosInstance,
-  endpoints,
-} from '@/utils/axios';
+import { axiosInstance, endpoints } from '@/utils/axios';
 export const getImages = async (dto: IConditionalImage, page: number, limit: number): Promise<IApiResponse<IImage[]>> => {
     try {
         const { data } = await axiosInstance.get(endpoints.image.getImages(dto.refId, dto.type, dto.isMain, page, limit));

@@ -9,7 +9,8 @@ import { useToast } from '@/context/toast-context';
 import { SplashScreen } from '@/components/loading';
 
 const ITEMS_PER_PAGE = 7;
-const getPaginationRange = (currentPage, totalPages) => {
+
+const getPaginationRange = (currentPage: number, totalPages: number) => {
   const range = [];
   const maxVisiblePages = 7;
   if (totalPages <= maxVisiblePages) { for (let i = 1; i <= totalPages; i++) { range.push(i); } return range; }
@@ -23,7 +24,7 @@ const getPaginationRange = (currentPage, totalPages) => {
   else if (endPage === totalPages - 1 && totalPages > 3) range.push(totalPages - 1);
   if (!range.includes(totalPages)) range.push(totalPages);
   let finalRange = [];
-  for (let i = 0; i < range.length; i++) { if (range[i] === '...' && i > 0 && i < range.length - 1 && range[i-1] + 1 === range[i+1]) { continue; } finalRange.push(range[i]); }
+  for (let i = 0; i < range.length; i++) { if (range[i] === '...' && i > 0 && i < range.length - 1 && Number(range[i-1]) + 1 === range[i+1]) { continue; } finalRange.push(range[i]); }
   return finalRange;
 };
 
@@ -181,13 +182,17 @@ export default function CategoriesView() {
 
   const goToPrevPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
   const goToNextPage = () => setCurrentPage(prev => Math.min(totalPages, prev + 1));
-  const goToPage = (page) => { if (page >= 1 && page <= totalPages) setCurrentPage(page); };
+  const goToPage = (page: number) => { if (page >= 1 && page <= totalPages) setCurrentPage(page); };
   
   const pageNumbers = getPaginationRange(currentPage, totalPages);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+  const formatDate = (dateString: string | Date) => {
+    return new Date(dateString).toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
@@ -278,7 +283,7 @@ export default function CategoriesView() {
       {/* 3. Pagination (Giữ nguyên) */}
       {totalPages > 1 && (
           <div className="flex justify-center items-center space-x-2 mt-0">
-              <button onClick={goToPrevPage} disabled={currentPage === 1} className="p-2 border rounded-xl disabled:opacity-50 hover:bg-gray-100 transition flex items-center gap-1 font-semibold uppercase px-4"><GrFormPrevious size={18} /> PREVIOUS</button>
+              <button onClick={goToPrevPage} disabled={currentPage === 1} className="p-2 border rounded-xl disabled:opacity-50 hover:bg-gray-100 transition flex items-center gap-1 font-semibold uppercase px-4"><GrFormPrevious size={18} /> TRƯỚC</button>
               {pageNumbers.map((item, index) => (
                   <React.Fragment key={index}>
                       {item === '...' ? (<span className="px-3 py-2 text-gray-700">...</span>) : (
@@ -286,7 +291,7 @@ export default function CategoriesView() {
                       )}
                   </React.Fragment>
               ))}
-              <button onClick={goToNextPage} disabled={currentPage === totalPages} className="p-2 border rounded-xl disabled:opacity-50 hover:bg-gray-100 transition flex items-center gap-1 font-semibold uppercase px-4">NEXT <GrFormNext size={18} /></button>
+              <button onClick={goToNextPage} disabled={currentPage === totalPages} className="p-2 border rounded-xl disabled:opacity-50 hover:bg-gray-100 transition flex items-center gap-1 font-semibold uppercase px-4">TIẾP <GrFormNext size={18} className="rotate-180" /></button>
           </div>
       )}
 
@@ -360,11 +365,11 @@ export default function CategoriesView() {
             </div>
           </div>
           <div className="modal-action">
-            <form method="dialog"><button className="btn" onClick={() => setEditingCategory(null)}>Huỷ</button></form>
+            <form method="dialog"><button className="btn" onClick={() => setEditingCategory(undefined)}>Huỷ</button></form>
             <button className="btn btn-neutral bg-darkgrey text-white px-2" onClick={handleUpdate}>Lưu thay đổi</button>
           </div>
         </div>
-        <form method="dialog" className="modal-backdrop"><button onClick={() => setEditingCategory(null)}>Thoát</button></form>
+        <form method="dialog" className="modal-backdrop"><button onClick={() => setEditingCategory(undefined)}>Thoát</button></form>
       </dialog>
 
       {/* === 6. MODAL "DELETE CONFIRM" === */}
@@ -377,11 +382,11 @@ export default function CategoriesView() {
             Hành động này không thể hoàn tác.
           </p>
           <div className="modal-action">
-            <form method="dialog"><button className="btn" onClick={() => setCategoryToDelete(null)}>Huỷ</button></form>
+            <form method="dialog"><button className="btn" onClick={() => setCategoryToDelete(undefined)}>Huỷ</button></form>
             <button className="btn btn-error bg-darkgrey text-white px-2" onClick={handleConfirmDelete}>Xóa</button>
           </div>
         </div>
-        <form method="dialog" className="modal-backdrop"><button onClick={() => setCategoryToDelete(null)}>Thoát</button></form>
+        <form method="dialog" className="modal-backdrop"><button onClick={() => setCategoryToDelete(undefined)}>Thoát</button></form>
       </dialog>
 
     </div>

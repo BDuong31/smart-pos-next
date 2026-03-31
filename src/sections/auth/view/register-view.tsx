@@ -9,7 +9,7 @@ import { RootState } from "@/store/store";
 import React from "react";
 import { FaApple, FaFacebook, FaGoogle } from "react-icons/fa";
 import { registerSchema } from "../data/schema";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
 import SplashScreen from "@/components/loading/splash-sceen";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -77,7 +77,11 @@ export default function RegisterView() {
             console.log('Registration successful:', userData);
 
             if (userData){
-                router.push('/login');
+                sessionStorage.setItem('tokenVerifyAccount', JSON.stringify({
+                    sessionId: userData.token.sessionId,
+                    expiry: userData.token.expiry
+                }));
+                router.push('/verify-account');
             }
         } catch (err: any) {
             if (err.response && err.response.data && err.response.data.message) {

@@ -1,6 +1,6 @@
 import { IApiResponse } from "@/interfaces/api-response";
 import { IOption, IOptionCreate, IOptionItem, IOptionItemCreate, IOptionItemUpdate, IOptionUpdate, IProductOptionConfig } from "@/interfaces/option";
-import axiosInstance, { endpoints } from "@/utils/axios";
+import { axiosInstance, endpoints } from "@/utils/axios";
 
 // Option APIs
 // thêm option
@@ -43,14 +43,14 @@ export const getListOptionIds = async (ids: string[]): Promise<IApiResponse<IOpt
 
 // Option Item APIs
 // thêm option item
-export const createOptionItem = async (dto: IOptionItemCreate) => {
-    const data = await axiosInstance.post(endpoints.option.createOptionItem, dto)
+export const createOptionItem = async (dto: IOptionItemCreate): Promise<IOptionItem> => {
+    const { data } = await axiosInstance.post(endpoints.option.createOptionItem, dto);
     return data;
 }
 
 // cập nhật option item
-export const updateOptionItem = async (id: string, dto: IOptionItemUpdate) => {
-    const data = await axiosInstance.put(endpoints.option.updateOptionItem(id), dto)
+export const updateOptionItem = async (id: string, dto: IOptionItemUpdate): Promise<IOptionItem> => {
+    const { data } = await axiosInstance.put(endpoints.option.updateOptionItem(id), dto);
     return data;
 }
 
