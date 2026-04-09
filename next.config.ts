@@ -48,6 +48,11 @@ const nextConfig: NextConfig = {
         hostname: 'res.cloudinary.com',
         pathname: '/**',
       },
+      { 
+        protocol: 'https',
+        hostname: 'via.placehold.co',
+        pathname: '/**',
+      },
       {
         protocol: 'https',
         hostname: 'api-baso-spark.up.railway.app',

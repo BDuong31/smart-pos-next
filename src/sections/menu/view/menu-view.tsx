@@ -6,6 +6,11 @@ import ProductList from "@/components/product/productList"; // Component con
 import Filters from "@/components/filter"; // Component con
 import { GrFormPrevious, GrFormNext } from "react-icons/gr";
 import { SplashScreen } from "@/components/loading";
+import { getProducts } from "@/apis/product";
+import { IProductDetails } from "@/interfaces/product";
+import { IVariant } from "@/interfaces/variant";
+import { ICategory } from "@/interfaces/category";
+import { getCategories } from "@/apis/category";
 
 const ITEMS_PER_PAGE = 9;
 
@@ -67,21 +72,52 @@ const getPaginationRange = (currentPage: number, totalPages: number) => {
 
 
 export default function MenuView() {
-    const [colorFilters, setColorFilters] = useState([]);
-    const [sizeFilters, setSizeFilters] = useState([]);
-    const [categoryFilters, setCategoryFilters] = useState<string[]>([]);
+    const [categoryFilters, setCategoryFilters] = useState<string[] | undefined>([]);
+    const [categorys, setCategorys] = useState<ICategory[]>([]);
     const [ProductsCount, setProductsCount] = useState(0);
     const [FilterPopup, setFilterPopup] = useState(false);
     const [FiltersApplied, setFiltersApplied] = useState('NEWEST');
     const [smFilterPopup, setSmFilterPopup] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [loading, setLoading] = useState(true);
-    const [currentProducts, setCurrentProducts] = useState([]);
-    const [variantList, setVariantList] = useState([]);
+    const [currentProducts, setCurrentProducts] = useState<IProductDetails[]>([]);
+    const [variantList, setVariantList] = useState<IVariant[]>([]);
+    const [variant, setVariant] = useState<Record<string, IVariant[] | undefined>>({});
     const [totalPages, setTotalPages] = useState(1);
 
     const popupRef = useRef<HTMLDivElement | null>(null);
     const filterRef = useRef<HTMLDivElement | null>(null);
+
+    const fetcherCategorys = async () => {
+        try {
+            setLoading(true);
+            const response = await getCategories(undefined, undefined, 1, 100);
+            setCategorys(response.data);
+        } catch (error) {
+            console.error("Error fetching categories:", error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const fetcherProducts = async () => {
+        setLoading(true);
+        try {
+            const response = await getProducts({}, currentPage, ITEMS_PER_PAGE);
+            setCurrentProducts(response.data);
+            setProductsCount(response.total);
+            setTotalPages(Math.ceil(response.total / ITEMS_PER_PAGE));
+        } catch (error) {
+            console.error("Error fetching products:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetcherProducts();
+        fetcherCategorys();
+    }, [currentPage, FiltersApplied]);
 
     const goToPrevPage = () => {
         setCurrentPage(prev => Math.max(1, prev - 1));
@@ -105,9 +141,9 @@ export default function MenuView() {
         setFilterPopup(false);
     };
 
-    // if (loading) {
-    //     return <SplashScreen className="h-[80vh]"/>;
-    // };
+    if (loading) {
+        return <SplashScreen className="h-[80vh]"/>;
+    };
     return (
         <div className="m-auto 3xl:max-w-[1500px] 2xl:max-w-[1450px] xl:max-w-[90%] lg:max-w-[90%] max-w-[95%] py-10"> 
             <div>
@@ -147,7 +183,7 @@ export default function MenuView() {
                         {
                             smFilterPopup &&
                             <div className={`absolute z-20 left-0 right-0 bg-fawhite m-auto 3xl:max-w-[1500px] 2xl:max-w-[1450px] xl:max-w-[90%] lg:max-w-[90%] max-w-[95%] py-7 px-5 rounded-b-xl`}>
-                                {/* <Filters Colors={Colors} colorFilters={colorFilters} setColorFilters={setColorFilters} Sizes={Sizes} sizeFilters={sizeFilters} setSizeFilters={setSizeFilters} Categories={Categories} categoryFilters={categoryFilters} setCategoryFilters={setCategoryFilters}/> */}
+                                <Filters categoryFilters={categoryFilters} setCategoryFilters={setCategoryFilters}/>
                             </div>
                         }
                     </div>
@@ -176,16 +212,15 @@ export default function MenuView() {
             <div className='lg:grid grid-cols-4 gap-3'>
                 <div className='hidden lg:block'>
                     <h2 className='text-xl font-semibold ml-2 mb-4'>Bộ lọc</h2>
-                    {/* <Filters Colors={Colors} colorFilters={colorFilters} setColorFilters={setColorFilters} Sizes={Sizes} sizeFilters={sizeFilters} setSizeFilters={setSizeFilters} Categories={Categories} categoryFilters={categoryFilters} setCategoryFilters={setCategoryFilters}/> */}
+                    <Filters Categories={categorys} categoryFilters={categoryFilters} setCategoryFilters={setCategoryFilters}/>
                 </div>
                 
                 <div className='col-span-3 lg:mt-4'>
-                    {/* {currentProducts.length > 0 ? (
-                        <ProductList products={currentProducts} variants={variantList} />
+                    {currentProducts.length > 0 ? (
+                        <ProductList products={currentProducts} variants={variant} />
                     ): (
-                        <p className='text-center text-gray-500'>No products found.</p>
-                    )}   */}
-                     <p className='text-center text-gray-500'>Không tồn tại món ăn.</p>
+                        <p className='text-center text-gray-500'>Không tồn tại món.</p>
+                    )}  
                     {totalPages > 1 && (
                         <div className="flex justify-center items-center space-x-2 mt-12">
                             {/* Nút PREVIOUS */}

@@ -136,6 +136,7 @@ export default function SideRightAdmin() {
         { name: "Máy in", href: "/printers", icon: Printer },
         { name: "Quy đổi đơn vị", href: "/unit-conversion", icon: Scale },
         { name: "Nhật ký hệ thống", href: "/system-logs", icon: FileText },
+        { name: "Cài đặt chung", href: "/settings", icon: SlidersHorizontal }
       ],
     },
   ]

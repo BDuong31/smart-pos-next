@@ -78,6 +78,8 @@ export default function LoginAdminView() {
             } else {
                 setPasswordError('Đã có lỗi xảy ra, Vui lòng thử lại sau');
             }
+        } finally {
+            setLoading(false)
         }
     }
 

@@ -13,6 +13,50 @@ type ProductImageProps = {
 const ProductImage = ({ images }: ProductImageProps) => {
     const [showModal, setShowModal] = React.useState<boolean>(false);
     const [activeIndex, setActiveIndex] = React.useState<number>(0);
+    const [imageSamples, setImageSamples] = React.useState<IImage[]>(
+    [
+        {
+            id: 'sample1',
+            url: '/food-sample.png',
+            isMain: true,
+            type: 'product',
+            publicId: 'sample1',
+            refId: 'sample1',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        },
+        {
+            id: 'sample2',
+            url: '/food-sample.png',
+            isMain: false,
+            type: 'product',
+            publicId: 'sample2',
+            refId: 'sample2',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        },
+        {
+            id: 'sample3',
+            url: '/food-sample.png',
+            isMain: false,
+            type: 'product',
+            publicId: 'sample3',
+            refId: 'sample3',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        },
+        {
+            id: 'sample4',
+            url: '/food-sample.png',
+            isMain: false,
+            type: 'product',
+            publicId: 'sample4',
+            refId: 'sample4',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        },
+    ]);
+    const [imagesToShow, setImagesToShow] = React.useState<IImage[]>([]);
 
     const cornerClasses = [
         'rounded-tl-[3rem]',
@@ -32,29 +76,39 @@ const ProductImage = ({ images }: ProductImageProps) => {
 
     const handleNavigation = (direction: 'next' | 'prev') => {
         if (direction === 'next') {
-            setActiveIndex((prev) => (prev + 1) % images.length);
+            setActiveIndex((prev) => (prev + 1) % imagesToShow.length);
         } else {
-            setActiveIndex((prev) => (prev - 1 + images.length) % images.length);
+            setActiveIndex((prev) => (prev - 1 + imagesToShow.length) % imagesToShow.length);
         }
     };
 
     const handleThumbnailClick = (index: number) => {
         setActiveIndex(index);
-    }
+    };
 
-    const currentImage = images[activeIndex];
+    React.useEffect(() => {
+        if (images && images.length > 0) {
+            setImagesToShow(images.slice(0, 4));
+        } else {
+            setImagesToShow(imageSamples);
+        }
+    }, [images]);
+
+    const currentImage = imagesToShow[activeIndex];
+
+    console.log('Rendering ProductImage with images:', imagesToShow);
 
     return (
         <div className='w-[100%]'>
             <div className="grid grid-cols-2 gap-4">
-                {images.slice(0, 4).map((img, idx) => (
+                {imagesToShow.map((img, idx) => (
                     <div
                         key={idx}
                         className={`relative w-full aspect-square overflow-hidden ${cornerClasses[idx]} bg-gray-100`}
                         onClick={() => handleImageClick(idx)}
                     >
                         <Image
-                            src={img?.url}
+                            src={img?.url || '/logo.png'}
                             alt={`Product image ${idx + 1}`}
                             fill
                             priority={idx === 0}
@@ -112,7 +166,7 @@ const ProductImage = ({ images }: ProductImageProps) => {
                         </div>
 
                         <div className="flex space-x-2 justify-center p-4 overflow-x-auto max-w-full">
-                            {images.map((img, idx) => (
+                            {imagesToShow.map((img, idx) => (
                                 <div
                                     key={img.id || idx}
                                     className={`relative w-16 h-16 flex-shrink-0 cursor-pointer rounded-md overflow-hidden bg-gray-700

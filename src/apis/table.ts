@@ -31,3 +31,8 @@ export const getListTableIds = async (ids: string[]): Promise<ITable[]> => {
     const { data } = await axiosInstance.post(endpoints.table.getListTableIds, { ids });
     return data.data;
 }
+
+export const getTableAvailible = async ( time: Date): Promise<ITable[]> => {
+    const { data } = await axiosInstance.get(endpoints.table.getListTableAvailable(time));
+    return data.data;
+}

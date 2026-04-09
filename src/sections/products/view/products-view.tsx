@@ -16,6 +16,8 @@ import { IUserProfile } from '@/interfaces/user';
 import { check, set } from 'zod';
 import { useToast } from '@/context/toast-context';
 import { randomInt } from 'node:crypto';
+import { IProductDetails } from '@/interfaces/product';
+import { getProductById } from '@/apis/product';
 
 interface ParamsProps {
     id: string
@@ -36,17 +38,33 @@ const RatingDefault: RatingDistribution = [
 export default function Product({id} : ParamsProps) {
     // const { showToast } = useToast()
     const [users, setUsers] = useState<IUserProfile[] | null>(null);
-    const [ratingDistribution, setRatingDistribution] = useState<RatingDistribution>(RatingDefault);
+    const [relatedProducts, setRelatedProducts] = useState<IProductDetails[]>([]);
     const [checkedRating, setCheckedRating] = useState<boolean | null>(null);
     const [totalPages, setTotalPages] = useState(0)
     const [itemsPerPage, setItemsPerPage] = useState(2);
     const [currentPage, setCurrentPage] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false); 
     const [loading, setLoading] = useState(false);
-    const [ProductInfos, setProductInfos] = useState<any>(null);
+    const [ProductInfos, setProductInfos] = useState<IProductDetails | null>(null);
     const [imagesDefault, setImagesDefault] = useState<any>(null);
 
+    const getProduct = async () => {
+        try {
+            setLoading(true);
+            const response = await getProductById(id);
+            setProductInfos(response.data);
+            const mainImage = response.data.images.find((img: any) => img.isMain);
+            setImagesDefault(mainImage);
+        } catch (error) {
+            console.error("Error fetching product details:", error);
+        } finally {
+            setLoading(false);
+        }
+    }
 
+    useEffect(() => {
+        getProduct();
+    }, [id]);
     useEffect(() => {
         const calculateItemsPerPage = () => {
             if (typeof window !== 'undefined') {
@@ -131,18 +149,18 @@ export default function Product({id} : ParamsProps) {
     //     }
     // }
 
-    // if (loading) {
-    //     return <SplashScreen className='h-[80vh]' />;
-    // }
+    if (loading) {
+        return <SplashScreen className='h-[80vh]' />;
+    }
     return (
         <div className={'m-auto 3xl:max-w-[1500px] 2xl:max-w-[1450px] xl:max-w-[90%] lg:max-w-[90%] max-w-[95%]'}>
             <div className='grid md:grid-cols-2 grid-cols-1 py-10 gap-9'>
-                {/* {ProductInfos && (
+                {ProductInfos && (
                     <>
                         <ProductImage images={ProductInfos ? ProductInfos.images : []} />
                         <ProductDetails product={ProductInfos ? ProductInfos : null} />
                     </>
-                )} */}
+                )}
             </div>
             <div>
                 <div className={`pb-5 flex m-auto`}>

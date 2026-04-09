@@ -26,3 +26,27 @@ body {
     -webkit-appearance: none;
   }
 }
+
+@layer utilities {
+  .text-construction {
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.05em;
+  }
+
+  .shadow-soft {
+    box-shadow: 0 20px 80px -10px rgba(0, 0, 0, 0.08);
+  }
+
+  .animate-float-slow {
+    animation: float-slow 8s ease-in-out infinite;
+  }
+
+  .animate-spin-slow {
+    animation: spin 8s linear infinite;
+  }
+
+  @keyframes float-slow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+  }
+}

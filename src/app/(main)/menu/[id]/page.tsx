@@ -6,9 +6,12 @@ export const metadata = {
     title: 'Sản phẩm | Baso Spark',
 }
 
-export default function ProductsPage(
-  { params }: { params: { id: string } }
+type Props = {
+  params: Promise<{ id: string }>;
+}
+export default async function ProductsPage(
+    { params }: { params: Promise<{ id: string }> }
 ){
-  const { id } = params;
+  const { id } = await params;
   return <Product id={id} />;
 }

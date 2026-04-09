@@ -44,7 +44,7 @@ function Badge({ text, type }: { text: string; type: BadgeType }) {
 }
 
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 8;
 
 const getPaginationRange = (currentPage: number, totalPages: number) => {
   const range = [];

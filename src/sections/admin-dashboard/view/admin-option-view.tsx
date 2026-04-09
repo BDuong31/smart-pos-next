@@ -295,57 +295,58 @@ export default function OptionsPage() {
         </button>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex gap-6 max-h-[80vh] overflow-hidden">
         {/* LEFT */}
         <div className="w-1/3 bg-white rounded-2xl shadow-sm p-4 space-y-3">
             <h2 className="font-semibold text-lg">Danh sách Tùy chọn</h2>
+            <div className="overflow-auto max-h-[70vh] pr-2 flex flex-col gap-2">
+              {optionList.map((opt) => {
+              const isActive = selectedOption?.id === opt.id;
 
-            {optionList.map((opt) => {
-            const isActive = selectedOption?.id === opt.id;
+              return (
+                  <div
+                  key={opt.id}
+                  onClick={() => setSelectedOption(opt)}
+                  className={`
+                      p-4 rounded-xl border cursor-pointer transition-all
+                      flex justify-between items-center
+                      ${isActive 
+                      ? "bg-darkgrey text-white shadow-md scale-[1.02]" 
+                      : "hover:bg-base-200"}
+                  `}
+                  >
+                  <div>
+                      <p className="font-medium">{opt.name}</p>
+                      <p className="text-xs opacity-60">
+                      {opt.isMultiSelect ? "Có nhiều lựa chọn" : "Chọn một"}
+                      </p>
+                  </div>
 
-            return (
-                <div
-                key={opt.id}
-                onClick={() => setSelectedOption(opt)}
-                className={`
-                    p-4 rounded-xl border cursor-pointer transition-all
-                    flex justify-between items-center
-                    ${isActive 
-                    ? "bg-darkgrey text-white shadow-md scale-[1.02]" 
-                    : "hover:bg-base-200"}
-                `}
-                >
-                <div>
-                    <p className="font-medium">{opt.name}</p>
-                    <p className="text-xs opacity-60">
-                    {opt.isMultiSelect ? "Có nhiều lựa chọn" : "Chọn một"}
-                    </p>
-                </div>
-
-                <div className="flex gap-1">
-                    <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        openEditOption(opt);
-                        (document.getElementById('edit_option_modal') as HTMLDialogElement)?.showModal()
-                    }}
-                    className="btn btn-xs btn-ghost"
-                    >
-                    Sửa
-                    </button>
-                    <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        (document.getElementById('delete_option_modal') as HTMLDialogElement)?.showModal()
-                    }}
-                    className="btn btn-xs btn-ghost text-error"
-                    >
-                    Xóa
-                    </button>
-                </div>
-                </div>
-            );
-            })}
+                  <div className="flex gap-1">
+                      <button
+                      onClick={(e) => {
+                          e.stopPropagation();
+                          openEditOption(opt);
+                          (document.getElementById('edit_option_modal') as HTMLDialogElement)?.showModal()
+                      }}
+                      className="btn btn-xs btn-ghost"
+                      >
+                      Sửa
+                      </button>
+                      <button
+                      onClick={(e) => {
+                          e.stopPropagation();
+                          (document.getElementById('delete_option_modal') as HTMLDialogElement)?.showModal()
+                      }}
+                      className="btn btn-xs btn-ghost text-error"
+                      >
+                      Xóa
+                      </button>
+                  </div>
+                  </div>
+              );
+              })}
+            </div>
         </div>
 
         {/* RIGHT */}
@@ -373,7 +374,7 @@ export default function OptionsPage() {
                 </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-2">
                 {optionItems.length > 0 ? (
                 optionItems.map((item) => (
                   <div

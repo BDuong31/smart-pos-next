@@ -7,6 +7,7 @@ import { HOST_API, AI_API } from '@/global-config';
 import { createCategory } from '@/apis/category';
 import { get } from 'http';
 import { id } from 'zod/v4/locales';
+import { IReservationQuery } from '@/interfaces/reservation';
 // Tạo một instance của axios với cấu hình mặc định
 export const axiosInstance = axios.create({ 
     baseURL: HOST_API, 
@@ -35,6 +36,7 @@ const processQueue = (error: any, token: string | null = null) => {
 // Interceptor để thêm token vào header của mỗi request
 axiosInstance.interceptors.request.use((config) => {
     const token = store.getState().auth.accessToken;
+    console.log("Current token in request interceptor: ", token);
 
     if (token) {
         config.headers['Authorization'] = `Bearer ${token}`;
@@ -60,6 +62,7 @@ axiosInstance.interceptors.response.use(
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
                 }).then((token) => {
+                    console.log(token)
                     originalConfig.headers['Authorization'] = 'Bearer ' + token;
                     return axiosInstance(originalConfig);
                 })
@@ -90,6 +93,15 @@ axiosInstance.interceptors.response.use(
             } finally {
                 isRefreshing = false;
             }
+        }
+
+        if (err.response?.status === 503) {
+            if (err.response.data?.error === 'MAINTENANCE_MODE') {
+                if (typeof window !== 'undefined' && !window.location.pathname.includes('/maintenance')) {
+                    window.location.href = 'http://localhost:3000/maintenance';
+                }
+            }
+            return Promise.reject(err);
         }
 
         return Promise.reject(err);
@@ -324,6 +336,7 @@ export const endpoints = {
             return `${VERSION_PREFIX}/options/product/config?${params.toString()}`
         },
         getProductOptionConfigsById: (id: string) => `${VERSION_PREFIX}/options/product/config/${id}`,
+        getProductOptionConfigsByProductId: (productId: string) => `${VERSION_PREFIX}/options/product/config/${productId}`,
         deleteProductOptionConfigById: (id: string) => `${VERSION_PREFIX}/options/product/config/${id}`,
     },
     combo: {
@@ -419,11 +432,91 @@ export const endpoints = {
         },
         getTableId: (id: string) => `${VERSION_PREFIX}/tables/${id}`,
         getListTableIds: `${VERSION_PREFIX}/tables/list-by-ids`,
+        getListTableAvailable: (time: Date) => {
+            const params = new URLSearchParams()
+            params.append("time", time.toISOString())
+            return `${VERSION_PREFIX}/tables/available?${params.toString()}`
+        }
     },
-    reservation: {},
-    cart: {},
-    cartItem: {},
-    cartItemOption: {},
+    reservation: {
+        createReservation: `${VERSION_PREFIX}/reservations`,
+        getReservations: (query?: IReservationQuery, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (query) {
+                if (query.userId) params.append("userId", query.userId)
+                if (query.tableId) params.append("tableId", query.tableId)
+                if (query.customerName) params.append("customerName", query.customerName)
+                if (query.phone) params.append("phone", query.phone)
+                if (query.time) params.append("time", query.time.toISOString())
+                if (query.guestCount !== undefined) params.append("guestCount", String(query.guestCount))
+                if (query.note) params.append("note", query.note)
+                if (query.status) params.append("status", query.status)
+            }
+
+            return `${VERSION_PREFIX}/reservations?${params.toString()}`
+        },
+        getReservationId: (id: string) => `${VERSION_PREFIX}/reservations/${id}`,
+        getReservationIds: `${VERSION_PREFIX}/reservations/list-by-ids`,
+        updateReservationId: (id: string) => `${VERSION_PREFIX}/reservations/${id}`,
+        deleteReservationId: (id: string) => `${VERSION_PREFIX}/reservations/${id}`,
+    },
+    cart: {
+        createCart: `${VERSION_PREFIX}/carts`,
+        updateCart: (id: string) => `${VERSION_PREFIX}/carts/${id}`,
+        deleteCart: (id: string) => `${VERSION_PREFIX}/carts/${id}`,
+        getCarts: (userId?: string | undefined, totalItem?: number | undefined, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (userId) params.append("userId", userId)
+            if (totalItem !== undefined) params.append("totalItem", String(totalItem))
+            
+            return `${VERSION_PREFIX}/carts?${params.toString()}`
+        },
+        getCartId: (id: string) => `${VERSION_PREFIX}/carts/${id}`,
+        getCartIds: `${VERSION_PREFIX}/carts/list-by-ids`,
+    },
+    cartItem: {
+        createCartItem: `${VERSION_PREFIX}/carts/items`,
+        updateCartItem: (id: string) => `${VERSION_PREFIX}/carts/items/${id}`,
+        deleteCartItem: (id: string) => `${VERSION_PREFIX}/carts/items/${id}`,
+        getCartItems: (cartId?: string, productId?: string, variantId?: string, quantity?: number, note?: string, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (cartId) params.append("cartId", cartId)
+            if (productId) params.append("productId", productId)
+            if (variantId) params.append("variantId", variantId)
+            if (quantity !== undefined) params.append("quantity", String(quantity))
+            if (note) params.append("note", note)
+
+            return `${VERSION_PREFIX}/carts/items?${params.toString()}`
+        },
+        getCartItemId: (id: string) => `${VERSION_PREFIX}/carts/items/${id}`,
+        getCartItemIds: `${VERSION_PREFIX}/carts/items/list-by-ids`,
+    },
+    cartItemOption: {
+        createCartItemOption: `${VERSION_PREFIX}/carts/item/option`,
+        updateCartItemOption: (id: string) => `${VERSION_PREFIX}/carts/item/option/${id}`,
+        deleteCartItemOption: (id: string) => `${VERSION_PREFIX}/carts/item/option/${id}`,
+        getCartItemOptions: (cartItemId?: string, optionItemId?: string, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (cartItemId) params.append("cartItemId", cartItemId)
+            if (optionItemId) params.append("optionItemId", optionItemId)
+
+            return `${VERSION_PREFIX}/carts/item/option?${params.toString()}`
+        },
+        getCartItemOptionId: (id: string) => `${VERSION_PREFIX}/carts/item/option/${id}`,
+        getCartItemOptionIds: `${VERSION_PREFIX}/carts/item/option/list-by-ids`,        
+    },
     order: {},
     orderItem: {},
     orderItemOption: {},
@@ -627,6 +720,10 @@ export const endpoints = {
         },
         getStockCheckDetailById: (id: string) => `${VERSION_PREFIX}/stock-check-details/${id}`,
         getListStockCheckDetailIds: `${VERSION_PREFIX}/stock-check-details/list-by-ids`,
+    },
+    system: {
+        setMaintenance: `${VERSION_PREFIX}/system/maintenance`,
+        maintenanceStatus: `${VERSION_PREFIX}/system/maintenance-status`,
     },
     ai: {
         getForecast: (mode: string) => {

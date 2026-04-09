@@ -3,7 +3,7 @@
 import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 import React, { useState, useMemo } from 'react'; 
 import { GrFormPrevious, GrFormNext } from "react-icons/gr"; 
-import { ICategoryCreate, ICategoryUpdate, ICategory } from '@/interfaces/category';
+import { ICategoryCreate, ICategoryUpdate, ICategory, ICategoryDetail } from '@/interfaces/category';
 import { createCategory, deleteCategory, getCategories, updateCategory } from '@/apis/category';
 import { useToast } from '@/context/toast-context';
 import { SplashScreen } from '@/components/loading';
@@ -29,17 +29,18 @@ const getPaginationRange = (currentPage: number, totalPages: number) => {
 };
 
 export default function CategoriesView() {
-  const [categoriesList, setCategoriesList] = useState<ICategory[]>([]);
+  const [categoriesList, setCategoriesList] = useState<ICategoryDetail[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
 
   const [newCategoryName, setNewCategoryName] = useState("");
 
   const [newCategoryParentId, setNewCategoryParentId] = useState<string | null>(null);
 
-  const [editingCategory, setEditingCategory] = useState<ICategory>();
+  const [editingCategory, setEditingCategory] = useState<ICategoryDetail>();
 
-  const [categoryToDelete, setCategoryToDelete] = useState<ICategory>();
+  const [categoryToDelete, setCategoryToDelete] = useState<ICategoryDetail>();
 
   const [loading, setLoading] = useState(true);
 
@@ -52,10 +53,8 @@ export default function CategoriesView() {
       const page = currentPage;
       const limit = ITEMS_PER_PAGE;
       const data = await getCategories(name, parentId, page, limit);
-      if (data) {
-        console.log(data);
-        setCategoriesList(data.data);
-      }
+      setCategoriesList(data.data);
+      setTotalPages(Math.ceil(data.total / ITEMS_PER_PAGE));
     } catch (error) {
       console.error("Error fetching categories:", error);
     }
@@ -64,7 +63,7 @@ export default function CategoriesView() {
   React.useEffect(() => {
     setLoading(true);
     fechterCategories().finally(() => setLoading(false));
-  }, []);
+  }, [currentPage]);
 
   const handleCreate = async () => {
     if (!newCategoryName.trim()) {
@@ -155,26 +154,6 @@ export default function CategoriesView() {
     setCategoryToDelete(undefined);
   };
 
-  const filteredCategories = useMemo(() => {
-    const lowerCaseSearchTerm = searchTerm?.toLowerCase() ?? '';
-    return categoriesList
-      ?.filter(category => {
-        const categoryName = category?.name ?? ''; 
-        
-        return categoryName.toLowerCase().includes(lowerCaseSearchTerm);
-      });
-  }, [searchTerm, categoriesList]);
-
-  const totalPages = useMemo(() => {
-    return Math.ceil(filteredCategories.length / ITEMS_PER_PAGE); 
-  }, [filteredCategories]);
-
-  const currentCategories = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    return filteredCategories?.slice(startIndex, endIndex); 
-  }, [currentPage, filteredCategories]);
-
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1); 
@@ -246,13 +225,13 @@ export default function CategoriesView() {
                 </tr>
               </thead>
               <tbody>
-                {currentCategories?.map((category) => (
+                {categoriesList?.map((category) => (
                   <tr key={category.id} className="hover">
                     <td>
                       <div className="font-bold">{category.name}</div>
                     </td>
                     <td>
-                      <div className="font-bold">{category.parentId ? currentCategories.find(c => c.id === category.parentId)?.name : 'None'}</div>
+                      <div className="font-bold">{category.parentId ? category.parent?.name : 'None'}</div>
                     </td>
                     <td>{formatDate(category?.createdAt)}</td>
                     <td>{formatDate(category?.updatedAt)}</td>
@@ -319,7 +298,7 @@ export default function CategoriesView() {
                 onChange={(e) => setNewCategoryParentId(e.target.value || null)}
               >
                 <option value="">None</option>
-                {currentCategories.map(category => (
+                {categoriesList.map(category => (
                   <option key={category.id} value={category.id}>{category.name}</option>
                 ))}
               </select>
@@ -356,7 +335,7 @@ export default function CategoriesView() {
                 onChange={(e) => setEditingCategory(prev => prev ? { ...prev, parentId: e.target.value || null } : prev)}
               >
                 <option value="">None</option>
-                {currentCategories
+                {categoriesList
                   .filter(category => category.id !== editingCategory?.id) 
                   .map(category => (
                     <option key={category.id} value={category.id}>{category.name}</option>

@@ -1,8 +1,5 @@
 import { IApiResponse } from '@/interfaces/api-response';
-import {
-  default as axios,
-  default as axiosInstance,
-  endpoints,
+import { endpoints, axiosInstance
 } from '@/utils/axios';
 import { ICombo, IComboCreate, IComboUpdate, IComboItem, IComboItemCreate, IComboItemUpdate, IComboItemDetail } from '@/interfaces/combo';
 

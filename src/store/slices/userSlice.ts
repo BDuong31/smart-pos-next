@@ -1,6 +1,6 @@
 import { getProfile } from '@/apis/user';
-import { IUserProfile } from '@/interfaces/user';
-import axiosInstance, { endpoints } from '@/utils/axios';
+import { IUserProfile, IUserProfileDetail } from '@/interfaces/user';
+import { axiosInstance, endpoints } from '@/utils/axios';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { createAsyncThunk } from '@reduxjs/toolkit';
 
@@ -17,7 +17,7 @@ export const getMe = createAsyncThunk(
     }
 );
 interface UserState {
-    user: IUserProfile | null;
+    user: IUserProfileDetail | null;
 }
 
 const initialState: UserState = {
@@ -28,7 +28,7 @@ const userSlice = createSlice({
     name: 'user',
     initialState,
     reducers: {
-        setUser: (state, action: PayloadAction<IUserProfile>) => {
+        setUser: (state, action: PayloadAction<IUserProfileDetail>) => {
             state.user = action.payload;
         },
         clearUser: (state) => {
@@ -36,7 +36,7 @@ const userSlice = createSlice({
         }
     },
     extraReducers: (builder) => {
-        builder.addCase(getMe.fulfilled, (state, action: PayloadAction<IUserProfile>) => {
+        builder.addCase(getMe.fulfilled, (state, action: PayloadAction<IUserProfileDetail>) => {
             state.user = action.payload; // Tự động gán khi gọi thành công
         });
         builder.addCase(getMe.rejected, (state) => {

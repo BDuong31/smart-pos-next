@@ -5,7 +5,7 @@ import Image from "next/image";
 import UserRegula from "../icons/user";
 import CartRegular from "../icons/cart";
 import SearchRegular, { SearchBold } from "../icons/search";
-import React from "react";
+import React, { useEffect } from "react";
 // import SearchPopup from "../search/search-popup";
 // import { useUserProfile } from "@/context/user-context";
 import ClipboardRegular from "../icons/clipboard";
@@ -15,13 +15,18 @@ import { LogIn, LogInIcon, UserPlus } from "lucide-react";
 import { FaRegistered } from "react-icons/fa";
 import { cn } from "@/lib";
 import { Button } from "@mui/material";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/store/store";
+import { getMe } from "@/store/slices/userSlice";
+import { fetchCartByUserId } from "@/store/slices/cartSlice";
 // import { ICategory } from "@/interfaces/category";
 // import { getCategories } from "@/apis/category";
 // import { useCart } from "@/context/cart-context";
 const Header = () => {
-    const userProfile  = null; // useUserProfile()
-    // const { userProfile } = useUserProfile()
-    // const { cart } = useCart();
+    const dispatch = useDispatch<AppDispatch>();
+    const user = useSelector((state: RootState) => state.user.user);
+    const cart = useSelector((state: RootState) => state.cart.cart);
+
     // const { setToken, isAuthenticated } = useAuth();
     // const [category, setCategory] = React.useState<ICategory[]>([]);
     const [isSearchOpen, setIsSearchOpen] = React.useState(false);
@@ -39,6 +44,21 @@ const Header = () => {
     // React.useEffect(() => {
     //     fetcherCategory();
     // }, []);
+
+    useEffect(() => {
+        if (!user) {
+            dispatch(getMe());
+        } 
+    }, [dispatch, user]);
+
+    useEffect(() => {
+        if (!cart) {
+            dispatch(fetchCartByUserId(user?.id || '')); 
+        }
+    }, [user?.id, dispatch]);
+    
+    console.log('user', user);
+    console.log('cart', cart);
     
     const toggleDropdown = () => {
         console.log('toggle dropdown');
@@ -68,6 +88,7 @@ const Header = () => {
                 <div className="navbar-center hidden lg:flex">
                     <ul className="menu menu-horizontal px-1">
                         <li className="text-darkgrey text-base font-bold"><a href="/">Trang Chủ</a></li>
+                     
                         <li className="text-darkgrey text-base font-bold"><a href="/menu">Thực Đơn</a></li>
                         <li className="text-darkgrey text-base font-bold"><a href="/booking">Đặt bàn</a></li>
                         <li className="text-darkgrey text-base font-bold"><a href="/contact">Liên Hệ</a></li>
@@ -86,29 +107,29 @@ const Header = () => {
                         <Link href={'/cart'} tabIndex={0} role="button" className="btn btn-ghost btn-circle">
                             <div className="indicator">
                             <CartRegular/>
-                            {/* {cart && cart.totalItem > 0 &&
+                            {cart && cart.totalItem > 0 &&
                                 <span className="badge badge-sm indicator-item">{cart?.totalItem}</span>
-                            } */}
+                            }
                             </div>
                         </Link>
                         </div>
                         <div className="dropdown dropdown-end">
                             <div tabIndex={0} role="button" className="btn btn-ghost btn-circle">
-                                {userProfile ? (
+                                {user ? (
                                     <div
                                         tabIndex={0}
                                         role="button"
                                         onClick={toggleDropdown}
                                     >
-                                        {/* <Image
+                                        <Image
                                             src={
-                                                userProfile.avatar !== null ? `${userProfile.avatar}` : '/default-avatar.jpg'  
+                                                user.avatar !== null ? `${user.avatar.url}` : '/default-avatar.jpg'  
                                             }
                                             alt="avatar"
                                             height={32}
                                             width={32}
                                             className="rounded-full w-8 h-8"
-                                        /> */}
+                                        />
                                     </div>
                                 ) : (
                                     <div
@@ -124,7 +145,7 @@ const Header = () => {
                                 tabIndex={0}
                                 className="menu dropdown-content bg-base-100 rounded-box z-[1] p-2 mt-2 shadow w-[9rem]"
                             >
-                                {userProfile ? (
+                                {user ? (
                                     <>
                                         <li>
                                             <Link

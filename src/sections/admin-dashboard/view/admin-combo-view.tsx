@@ -171,7 +171,7 @@ export default function AdminComboView() {
 
   // ================= UI =================
   return (
-    <div className="p-6 bg-base-200 min-h-screen space-y-6">
+    <div className="p-6 bg-base-200 space-y-6 overflow-hidden">
       {/* HEADER */}
       <div className="flex justify-between">
         <h1 className="text-3xl font-bold">Combo</h1>
@@ -186,7 +186,7 @@ export default function AdminComboView() {
 
       <div className="flex gap-6">
         {/* LEFT */}
-        <div className="w-1/3 bg-white p-4 rounded-2xl shadow">
+        <div className="w-1/3 bg-white p-4 rounded-2xl shadow max-h-[80vh] overflow-auto">
           {combos.map((c) => (
             <div
               key={c.id}
@@ -235,7 +235,7 @@ export default function AdminComboView() {
                 </button>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[60vh] overflow-auto">
                 {items.map((item) => (
                   <div
                     key={item.id}

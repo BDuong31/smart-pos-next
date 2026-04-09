@@ -3,11 +3,11 @@ import React from 'react';
 import ProductItem from './productItem';
 import { IProductDetails } from '@/interfaces/product';
 import { IImage } from '@/interfaces/image';
-import { IProductVariant } from '@/interfaces/variant';
+import { IVariant } from '@/interfaces/variant';
 
 type ProductListProps = {
     products: IProductDetails[];
-    variants: Record<string, IProductVariant[] | undefined>;
+    variants: Record<string, IVariant[] | undefined>;
     length?: number;
 }
 

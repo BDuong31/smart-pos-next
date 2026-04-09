@@ -8,25 +8,26 @@ import Category from "@/components/category/category";
 import ReviewItem from "@/components/review/reviewItem";
 // import { useUserProfile } from "@/context/user-context";
 // import { getProducts } from "@/apis/product";
-// import { IProductDetails } from "@/interfaces/product";
+import { IProductDetails } from "@/interfaces/product";
 // import { IConditionalImage, IImage } from "@/interfaces/image";
 // import { getImages } from "@/apis/image";
-// import { ICategory } from "@/interfaces/category";
-// import { getCategories } from "@/apis/category";
+import { ICategory } from "@/interfaces/category";
+import { getCategories } from "@/apis/category";
 // import { SplashScreen } from "@/components/loading";
 // import { IRating, IRatingWithUser } from "@/interfaces/rating";
 // import { getAllRatings } from "@/apis/rating";
-// import { IProductVariant } from "@/interfaces/variant";
-// import { getVariants } from "@/apis/variant";
+import { getVariants } from "@/apis/variant";
 import { set } from "zod";
+import { getProducts } from "@/apis/product";
+import { IVariant } from "@/interfaces/variant";
 export default function HomeView() {
     // const { userProfile, loading } = useUserProfile()
-    // const [products, setProducts] = useState<IProductDetails[]>([]);
-    // const [latestProducts, setLatestProducts] = useState<IProductDetails[]>([]);
-    // const [variants, setVariants] = useState<Record<string, IProductVariant[]>>({});
-    // const [category, setCategory] = useState<ICategory[]>([]);
+    const [products, setProducts] = useState<IProductDetails[]>([]);
+    const [latestProducts, setLatestProducts] = useState<IProductDetails[]>([]);
+    const [variants, setVariants] = useState<Record<string, IVariant[]>>({});
+    const [category, setCategory] = useState<ICategory[]>([]);
     // const [reviews, setReviews] = useState<IRatingWithUser[]>([]);
-    // const [categories, setCategories] = useState<ICategory[]>([]);
+    const [categories, setCategories] = useState<ICategory[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
@@ -50,40 +51,40 @@ export default function HomeView() {
 
 
     // Hàm lấy danh sách sản phẩm
-    // const fetcherProducts = async () => {
-    //     setIsLoading(true);
-    //     try {
-    //         const response = await getProducts();
-    //         setProducts(response.data);
-    //     } catch (error) {
-    //         console.error('Error fetching products:', error);
-    //     } finally {
-    //         setIsLoading(false);
-    //     }
-    // }
+    const fetcherProducts = async () => {
+        setIsLoading(true);
+        try {
+            const response = await getProducts({}, 1, 10);
+            setProducts(response.data);
+        } catch (error) {
+            console.error('Error fetching products:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
 
-    // const fetcherVariants = async (productId: string) => {
-    //     try {
-    //         const response = await getVariants(productId);
-    //         return response.data;
-    //     } catch (error) {
-    //         console.error('Error fetching images for product', productId, error);
-    //         return [];
-    //     }
-    // }
+    const fetcherVariants = async (productId: string) => {
+        try {
+            const response = await getVariants({ productId: productId }, 1, 10);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching images for product', productId, error);
+            return [];
+        }
+    }
 
-    // const fetcherCategory = async () => {
-    //     setIsLoading(true);
-    //     try {
-    //         const response = await getCategories();
-    //         setCategory(response.data);
-    //     } catch (error) {
-    //         console.error('Error fetching categories:', error);
-    //     }
-    //     finally {
-    //         setIsLoading(false);
-    //     }
-    // }
+    const fetcherCategory = async () => {
+        setIsLoading(true);
+        try {
+            const response = await getCategories(undefined, undefined, 1, 100);
+            setCategory(response.data);
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+        finally {
+            setIsLoading(false);
+        }
+    }
 
     // const fetchRatings = async () => {
     //     setIsLoading(true);
@@ -99,71 +100,70 @@ export default function HomeView() {
     //     }
     // }
 
-    // React.useEffect(() => {
-    //     fetcherProducts();
-    //     fetcherCategory();
-    //     fetchRatings();
-    // }, []);
+    React.useEffect(() => {
+        fetcherProducts();
+        fetcherCategory();
+    }, []);
 
     // const reviewSection = reviews.slice(0, calculateItemsPerPage());
 
-    // React.useEffect(() => {
-    //     setLatestProducts(products.slice(0, 4));
-    // }, [products]);
+    React.useEffect(() => {
+        setLatestProducts(products.slice(0, 4));
+    }, [products]);
 
-    // useEffect(() => {
-    //     const fetchAllVariants = async () => {
-    //         const variantsData: Record<string, IProductVariant[]> = {};
-    //         for (const product of latestProducts) {
-    //             const productVariants = await fetcherVariants(product.id);
-    //             variantsData[product.id] = productVariants;
-    //         }
-    //         setVariants(variantsData);
-    //     };
+    useEffect(() => {
+        const fetchAllVariants = async () => {
+            const variantsData: Record<string, IVariant[]> = {};
+            for (const product of latestProducts) {
+                const productVariants = await fetcherVariants(product.id);
+                variantsData[product.id] = productVariants;
+            }
+            setVariants(variantsData);
+        };
 
-    //     if (latestProducts.length > 0) {
-    //         fetchAllVariants();
-    //     }
+        if (latestProducts.length > 0) {
+            fetchAllVariants();
+        }
 
-    // }, [latestProducts]);
+    }, [latestProducts]);
     
-    // const calculateCategoriesPage = useCallback(() => {
-    //     if (!category.length) return;
+    const calculateCategoriesPage = useCallback(() => {
+        if (!category.length) return;
 
-    //     const newTotalPages = Math.ceil(category.length / itemsPerPage);
-    //     setTotalPages(newTotalPages);
+        const newTotalPages = Math.ceil(category.length / itemsPerPage);
+        setTotalPages(newTotalPages);
 
-    //     const safePage = Math.min(currentPage, newTotalPages || 1);
-    //     if (safePage !== currentPage) {
-    //         setCurrentPage(safePage);
-    //         return; 
-    //     }
+        const safePage = Math.min(currentPage, newTotalPages || 1);
+        if (safePage !== currentPage) {
+            setCurrentPage(safePage);
+            return; 
+        }
 
-    //     const startIdx = (safePage - 1) * itemsPerPage;
-    //     const endIdx = startIdx + itemsPerPage;
-    //     setCategories(category.slice(startIdx, endIdx));
-    // }, [category, currentPage, itemsPerPage]);
+        const startIdx = (safePage - 1) * itemsPerPage;
+        const endIdx = startIdx + itemsPerPage;
+        setCategories(category.slice(startIdx, endIdx));
+    }, [category, currentPage, itemsPerPage]);
 
 
-    // React.useEffect(() => {
-    //     calculateCategoriesPage();
-    // }, [calculateCategoriesPage]);
+    React.useEffect(() => {
+        calculateCategoriesPage();
+    }, [calculateCategoriesPage]);
 
-    // React.useEffect(() => {
-    //     const handleResize = () => {
-    //         const newItemsPerPage = calculateItemsPerPage();
-    //         if (newItemsPerPage !== itemsPerPage) {
-    //             setItemsPerPage(newItemsPerPage);
-    //         }
-    //     };
+    React.useEffect(() => {
+        const handleResize = () => {
+            const newItemsPerPage = calculateItemsPerPage();
+            if (newItemsPerPage !== itemsPerPage) {
+                setItemsPerPage(newItemsPerPage);
+            }
+        };
 
-    //     handleResize();
+        handleResize();
 
-    //     window.addEventListener('resize', handleResize);
-    //     return () => {
-    //         window.removeEventListener('resize', handleResize);
-    //     };
-    // }, [itemsPerPage]); 
+        window.addEventListener('resize', handleResize);
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, [itemsPerPage]); 
     
     const handlePrev = () => {
         setCurrentPage(prev => Math.max(1, prev - 1));
@@ -209,7 +209,7 @@ export default function HomeView() {
                 </div>
             </div>
             <div className="py-12 m-auto 3xl:max-w-[1500px] 2xl:max-w-[1450px] xl:max-w-[90%] lg:max-w-[90%] max-w-[95%] max-h-[700px]">
-                {/* <ProductListLaster products={latestProducts} variants={variants} length={4} /> */}
+                <ProductListLaster products={latestProducts} variants={variants} length={4} />
             </div>
         </div>
         <div className='bg-darkgrey py-24 px-6 md:px-0'>
@@ -227,25 +227,25 @@ export default function HomeView() {
                 </div>
             </div>
             <div className='m-auto grid gap-9 xl:grid-cols-3 md:grid-cols-2 grid-cols-1 3xl:max-w-[1500px] 2xl:max-w-[1450px] xl:max-w-[90%] lg:max-w-[90%] max-w-[95%]'>
-                {/* {categories?.map((category, index) => (
+                {categories?.map((category, index) => (
                     category && (
                         <Category key={index} category={category}/> 
                     ) 
-                ))} */}
+                ))}
             </div>
         </div>
-        <div className='px-6 md:px-0'>
+        {/* <div className='px-6 md:px-0'>
             <div className={`pt-20 flex m-auto 3xl:max-w-[1500px] 2xl:max-w-[1450px] xl:max-w-[90%] lg:max-w-[90%] max-w-[95%]`}>
                 <h1 className='2xl:text-[74px] xl:text-[60px] lg:text-[50px] md:text-[40px] sm:text-[30px] text-[24px] font-semibold uppercase flex-1 2xl:leading-[70px] xl:leading-[60px] lg:leading-[50px] md:leading-[40px] sm:leading-[30px] text-darkgrey'>Đánh giá từ khách hàng</h1>
             </div>
             <div className={`pt-12 grid sm:grid-cols-2 grid-cols-1 xl:grid-cols-3 3xl:grid-cols-4 gap-9 m-auto 3xl:max-w-[1500px] 2xl:max-w-[1450px] xl:max-w-[90%] lg:max-w-[90%] max-w-[95%] `}>
-                {/* {
+                {
                     reviewSection.map((review : IRatingWithUser, index) => {
                         return <ReviewItem review={review} key={review.id} className={`${index == 2 && 'hidden lg:block' || index == 1 && 'hidden sm:block'}`}/>
                     })
-                } */}
+                }
             </div>
-        </div>
+        </div> */}
     </>
     );
 }

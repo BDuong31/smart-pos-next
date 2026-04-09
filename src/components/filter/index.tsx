@@ -1,55 +1,90 @@
-import React from 'react'
-import ColorPicker from '../colorPicker'
-import Sizepicker from '../sizePicker'
-import CategoryPicker from '../categoryPicker'
-import { ICategory } from '@/interfaces/category';
+import React, { useMemo } from 'react';
+import CategoryPicker from '../categoryPicker'; // Đảm bảo đường dẫn import đúng
+// import ColorPicker from '../colorPicker';
+// import Sizepicker from '../sizePicker';
 
-interface FiltesProps {
-  Colors: any[];
-  colorFilters: string[]; 
-  setColorFilters: any; 
-  Sizes: any[];
-  sizeFilters: string[]; 
-  setSizeFilters: any; 
+// Các Interfaces bạn vừa định nghĩa
+export interface ICategory {
+  id: string;
+  name: string;
+  parentId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ICategoryCreate {
+  name: string;
+  parentId?: string | null;
+}
+
+export interface ICategoryUpdate {
+  name?: string;
+  parentId?: string | null;
+}
+
+// Interface mở rộng để chứa các danh mục con
+export interface ICategoryNode extends ICategory {
+  children: ICategoryNode[];
+}
+
+interface FiltersProps {
   Categories?: ICategory[];
   categoryFilters?: string[]; 
-  setCategoryFilters?: any; 
+  setCategoryFilters?: (filters: string[]) => void; // Khai báo chuẩn type function
 }
-const Filters : React.FC<FiltesProps>  = ( { Colors, colorFilters, setColorFilters, Sizes, sizeFilters, setSizeFilters, Categories, categoryFilters, setCategoryFilters }) => {
-  
+
+const Filters: React.FC<FiltersProps> = ({ 
+  Categories = [], 
+  categoryFilters = [], 
+  setCategoryFilters = () => {} 
+}) => {
+
+  // Chuyển đổi mảng 1 chiều thành cấu trúc Cây (Tree) dựa vào parentId
+  const categoryTree = useMemo(() => {
+    if (!Categories || Categories.length === 0) return [];
+
+    const categoryMap = new Map<string, ICategoryNode>();
+    const roots: ICategoryNode[] = [];
+
+    // Khởi tạo map với các node trống children
+    Categories.forEach((cat) => {
+      categoryMap.set(cat.id, { ...cat, children: [] });
+    });
+
+    // Gom nhóm cha - con
+    Categories.forEach((cat) => {
+      if (cat.parentId && categoryMap.has(cat.parentId)) {
+        // Nếu có parentId -> Push vào children của node cha
+        categoryMap.get(cat.parentId)!.children.push(categoryMap.get(cat.id)!);
+      } else {
+        // Nếu không có parentId -> Nó là danh mục gốc (root)
+        roots.push(categoryMap.get(cat.id)!);
+      }
+    });
+
+    return roots;
+  }, [Categories]);
+
   return (
     <div>
-      <div className="collapse collapse-arrow mb-4">
-        <input type="checkbox" defaultChecked className="peer" /> 
-        <div className="collapse-title text-md font-semibold">
-            COLORS
-        </div>
-        <div className="collapse-content"> 
-            <ColorPicker colors={Colors} colorFilters={colorFilters} setColorFilters={setColorFilters}/>
-        </div>
-      </div>
-      <div className="collapse collapse-arrow mb-4">
-        <input type="checkbox" defaultChecked className="peer" /> 
-        <div className="collapse-title text-md font-semibold">
-            SIZES
-        </div>
-        <div className="collapse-content"> 
-        <Sizepicker sizes={Sizes} sizeFilters={sizeFilters} setSizeFilters={setSizeFilters} />
-        </div>
-      </div>
-      {Categories && (
+      {Categories && Categories.length > 0 && (
         <div className="collapse collapse-arrow mb-4">
           <input type="checkbox" defaultChecked className="peer" /> 
-          <div className="collapse-title text-md font-semibold">
-              CATEGORIES
+          <div className="collapse-title text-md font-semibold text-slate-800">
+            Danh mục
           </div>
           <div className="collapse-content"> 
-          <CategoryPicker categories={Categories} categoryFilters={categoryFilters ?? []} setCategoryFilters={setCategoryFilters ?? (() => {})} />
+            {/* Truyền cây danh mục (đã được gom nhóm) vào CategoryPicker */}
+            <CategoryPicker 
+              categories={categoryTree} // Lưu ý: Truyền tree thay vì mảng phẳng
+              categoryFilters={categoryFilters} 
+              setCategoryFilters={setCategoryFilters} 
+            />
           </div>
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default Filters
+export default Filters;

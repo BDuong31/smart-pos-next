@@ -6,6 +6,14 @@ export interface ICategory {
   updatedAt: Date;
 }
 
+export interface ICategoryDetail {
+  id: string;
+  name: string;
+  parentId?: string | null;
+  parent?: ICategory | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
 export interface ICategoryCreate {
   name: string;
   parentId?: string | null;
