@@ -1,27 +1,32 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { CalendarDays, Clock, Users, User, Phone, CheckCircle2, Map } from "lucide-react";
+import { CalendarDays, Clock, Users, User, CheckCircle2, Map } from "lucide-react";
 
 // Interfaces
 import { IZone } from "@/interfaces/zone";
-import { ITable, ITableDetail } from "@/interfaces/table";
+import { ITable } from "@/interfaces/table";
 import { IReservationCreate } from "@/interfaces/reservation";
 
 // APIs
 import { getZones } from "@/apis/zone";
-// Nhớ import thêm hàm getTableAvailible của bạn vào đây:
 import { getTableAvailible } from "@/apis/table"; 
 import { createReservation } from "@/apis/reservation";
+import { SplashScreen } from "@/components/loading";
+import { useToast } from "@/context/toast-context";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/store/store";
 
 const TIME_SLOTS = ["09:00", "10:00", "11:00", "12:00", "13:00", "17:00", "18:00", "19:00", "20:00", "21:00"];
 
 export default function CustomerBookingPage() {
+  const { showToast } = useToast();
+  const user = useSelector((state: RootState) => state.user.user);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   
   const [isLoadingZones, setIsLoadingZones] = useState(true);
-  const [isFetchingTables, setIsFetchingTables] = useState(false); // Thêm state loading riêng cho Bàn
+  const [isFetchingTables, setIsFetchingTables] = useState(false);
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -33,12 +38,11 @@ export default function CustomerBookingPage() {
   });
 
   const [zones, setZones] = useState<IZone[]>([]);
-  // Dùng ITable hoặc ITableDetail tùy theo dữ liệu API trả về
   const [tables, setTables] = useState<ITable[]>([]); 
   const [activeZoneId, setActiveZoneId] = useState<string>("");
   const [selectedTable, setSelectedTable] = useState<ITable | null>(null);
 
-  // 1. CHỈ TẢI ZONE KHI MỚI VÀO TRANG
+  // 1. TẢI ZONE KHỞI TẠO
   useEffect(() => {
     const fetchZones = async () => {
       setIsLoadingZones(true);
@@ -57,24 +61,27 @@ export default function CustomerBookingPage() {
     fetchZones();
   }, []);
 
-  // 2. TẢI DANH SÁCH BÀN TRỐNG MỖI KHI NGÀY/GIỜ THAY ĐỔI
+  // 2. TẢI BÀN TRỐNG (Tích hợp chuẩn giờ ISO có Ngày + Giờ)
   useEffect(() => {
     const fetchAvailableTables = async () => {
-      // Chỉ gọi API khi khách đã chọn cả ngày và giờ
       if (!formData.date || !formData.time) {
-        setTables([]); // Clear bàn nếu chưa chọn giờ
+        setTables([]); 
         return; 
       }
 
       setIsFetchingTables(true);
-      setSelectedTable(null); // Reset bàn đã chọn khi đổi giờ
+      setSelectedTable(null); 
 
       try {
-        // Ghép chuỗi ngày và giờ thành format chuẩn ISO (VD: 2026-04-10T18:00:00)
+        // Ghép chuỗi ngày và giờ (VD: 2026-04-09T09:00:00)
         const dateTimeString = `${formData.date}T${formData.time}:00`;
+        // Trình duyệt sẽ tự hiểu đây là múi giờ Local (VD: VN là UTC+7)
         const bookingDateObj = new Date(dateTimeString);
 
-        // Gọi API getTableAvailible
+        // Bạn có thể F12 mở Console để xem nó in ra đúng định dạng 2026-04-09T02:00:00.000Z chưa nhé
+        console.log("Đang kiểm tra bàn trống cho giờ:", bookingDateObj.toISOString());
+
+        // Truyền thẳng Object Date vào hàm API của bạn
         const availableTables = await getTableAvailible(bookingDateObj);
         
         if (availableTables) {
@@ -82,14 +89,14 @@ export default function CustomerBookingPage() {
         }
       } catch (error) {
         console.error("Lỗi khi tải danh sách bàn trống:", error);
-        alert("Không thể kiểm tra bàn trống lúc này. Vui lòng thử lại!");
+        showToast("Không thể kiểm tra bàn trống lúc này. Vui lòng thử lại!", "error");
       } finally {
         setIsFetchingTables(false);
       }
     };
 
     fetchAvailableTables();
-  }, [formData.date, formData.time]); // Hàm này sẽ chạy lại mỗi khi Date hoặc Time thay đổi
+  }, [formData.date, formData.time]); 
 
   const tablesInActiveZone = useMemo(() => {
     return tables.filter((t) => t.zoneId === activeZoneId);
@@ -110,7 +117,6 @@ export default function CustomerBookingPage() {
   };
 
   const handleTableSelect = (table: ITable) => {
-    // Nếu API chỉ trả về bàn 'available' thì không cần check status nữa, nhưng cứ check sức chứa
     if (table.capacity < formData.guests) return alert(`Bàn này chỉ chứa được tối đa ${table.capacity} người!`);
     setSelectedTable(table);
   };
@@ -123,21 +129,28 @@ export default function CustomerBookingPage() {
 
     setIsSubmitting(true);
     try {
+      // Ghép ngày và giờ từ form để tạo ra Date object (Ví dụ: 2026-04-09T09:00:00)
+      const dateTimeString = `${formData.date}T${formData.time}`;
+      const bookingDateObj = new Date(dateTimeString);
+
       const payload: any = {
         customerName: formData.customerName,
         phone: formData.phone,
-        bookingDate: formData.date,
-        time: formData.time,
-        guests: formData.guests,
-        note: formData.note,
+        guestCount: formData.guests,
+        time: new Date(dateTimeString).toISOString(),
+        userId: user?.id,
         tableId: selectedTable.id,
+        note: formData.note,
       };
 
       await createReservation(payload as IReservationCreate);
+      // Thành công -> Hiện Modal
       setIsSuccess(true);
+      (document.getElementById('success_modal') as HTMLDialogElement)?.showModal();
+
     } catch (error) {
       console.error("Lỗi đặt bàn:", error);
-      alert("Lỗi hệ thống khi đặt bàn! Vui lòng thử lại.");
+      showToast("Lỗi hệ thống khi đặt bàn! Vui lòng thử lại.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -146,39 +159,16 @@ export default function CustomerBookingPage() {
   // Trạng thái style của Bàn
   const getTableStyle = (table: ITable) => {
     const isCapacityValid = table.capacity >= formData.guests;
-    if (!isCapacityValid) return "bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed opacity-60"; 
+    if (!isCapacityValid) return "bg-gray border-gray-200 text-gray-400 cursor-not-allowed opacity-60"; 
     
     return selectedTable?.id === table.id
-      ? "bg-orange-500 border-orange-600 text-white shadow-lg ring-2 ring-orange-200 ring-offset-2 transform scale-105"
+      ? "bg-success border text-white shadow-lg ring-2 ring-orange-200 ring-offset-2 transform scale-105"
       : "bg-white border-orange-200 text-gray-700 hover:border-orange-500 hover:shadow-md cursor-pointer";
   };
 
   // ================= RENDER =================
   if (isLoadingZones) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-10 h-10 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (isSuccess) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white p-8 md:p-12 rounded-3xl shadow-xl max-w-lg w-full text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-10 h-10 text-green-500" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Đặt bàn thành công!</h1>
-          <p className="text-gray-600 mb-8 leading-relaxed">
-            Cảm ơn <b>{formData.customerName}</b>. Bàn <b className="text-orange-600">{selectedTable?.name}</b> đã được giữ cho bạn vào lúc <b>{formData.time}</b> ngày <b>{formData.date}</b>.
-          </p>
-          <button onClick={() => window.location.reload()} className="w-full bg-gray-900 text-white px-8 py-4 rounded-xl font-semibold hover:bg-gray-800 transition-colors">
-            Quay lại trang chủ
-          </button>
-        </div>
-      </div>
-    );
+    return <SplashScreen />;
   }
 
   return (
@@ -190,13 +180,12 @@ export default function CustomerBookingPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* CỘT TRÁI (Form chọn Ngày/Giờ và Thông tin khách) - Giữ nguyên như cũ */}
+          {/* CỘT TRÁI */}
           <div className="lg:col-span-4 flex flex-col gap-6">
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
               <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
                 <CalendarDays className="w-5 h-5 text-orange-500"/> Chi tiết đặt chỗ
               </h2>
-              
               <div className="space-y-5">
                 <div>
                   <label className="text-sm font-medium text-gray-700 block mb-2">Ngày đến</label>
@@ -216,7 +205,7 @@ export default function CustomerBookingPage() {
                   <label className="text-sm font-medium text-gray-700 block mb-2">Giờ đến</label>
                   <div className="grid grid-cols-3 gap-2">
                     {TIME_SLOTS.map((time) => (
-                      <button key={time} type="button" onClick={() => setFormData(prev => ({ ...prev, time }))} className={`py-2.5 rounded-xl font-semibold text-sm transition-all border ${formData.time === time ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300'}`}>
+                      <button key={time} type="button" onClick={() => setFormData(prev => ({ ...prev, time }))} className={`py-2.5 rounded-xl font-semibold text-sm transition-all border ${formData.time === time ? 'bg-darkgrey text-white border-orange-500' : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300'}`}>
                         {time}
                       </button>
                     ))}
@@ -237,19 +226,19 @@ export default function CustomerBookingPage() {
               </div>
             </div>
 
-            <button type="submit" disabled={isSubmitting || !selectedTable || !formData.time} className={`w-full py-4 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-2 ${isSubmitting || !selectedTable || !formData.time ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-gray-800 shadow-xl shadow-gray-900/20'}`}>
+            <button type="submit" disabled={isSubmitting || !selectedTable || !formData.time} className={`w-full py-4 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-2 ${isSubmitting || !selectedTable || !formData.time ? 'bg-darkgrey opacity-50 text-white cursor-not-allowed' : 'bg-darkgrey text-white hover:bg-gray-800 shadow-xl shadow-gray-900/20'}`}>
               {isSubmitting ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> : "XÁC NHẬN ĐẶT BÀN"}
             </button>
           </div>
 
-          {/* CỘT PHẢI: SƠ ĐỒ BÀN */}
+          {/* CỘT PHẢI */}
           <div className="lg:col-span-8 flex flex-col h-full min-h-[500px]">
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 flex flex-col h-full overflow-hidden">
               
               <div className="p-4 sm:p-6 border-b border-gray-100 bg-white z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex overflow-x-auto hide-scrollbar gap-2 pb-1 sm:pb-0">
                   {zones.map((zone) => (
-                    <button key={zone.id} type="button" onClick={() => setActiveZoneId(zone.id)} className={`whitespace-nowrap px-5 py-2.5 rounded-xl font-semibold text-sm transition-all border ${activeZoneId === zone.id ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-50'}`}>
+                    <button key={zone.id} type="button" onClick={() => setActiveZoneId(zone.id)} className={`whitespace-nowrap px-5 py-2.5 rounded-xl font-semibold text-sm transition-all border ${activeZoneId === zone.id ? 'bg-darkgrey text-white border-orange-200' : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-50'}`}>
                       {zone.name}
                     </button>
                   ))}
@@ -257,7 +246,7 @@ export default function CustomerBookingPage() {
                 
                 <div className="flex items-center gap-3 text-[11px] font-medium text-gray-500 shrink-0">
                   <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full border border-orange-200 bg-white"></div> Phù hợp</span>
-                  <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-gray-300"></div> Không đủ chỗ</span>
+                  <span className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-gray"></div> Không đủ chỗ</span>
                 </div>
               </div>
 
@@ -272,8 +261,8 @@ export default function CustomerBookingPage() {
                   </div>
                 ) : isFetchingTables ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-white/50">
-                     <div className="w-10 h-10 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin"></div>
-                     <p className="mt-3 text-gray-500 font-medium">Đang tìm bàn trống...</p>
+                      <div className="w-10 h-10 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin"></div>
+                      <p className="mt-3 text-gray-500 font-medium">Đang tìm bàn trống...</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -285,7 +274,7 @@ export default function CustomerBookingPage() {
                             <Map className={`w-8 h-8 ${selectedTable?.id === table.id ? 'text-white' : 'text-current opacity-40'}`} />
                           </div>
                           <span className="font-bold text-sm text-center mb-1">{table.name}</span>
-                          <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${selectedTable?.id === table.id ? 'bg-white/20 text-white' : 'bg-gray-900/5 text-current'}`}>
+                          <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${selectedTable?.id === table.id ? 'bg-darkgrey text-white' : 'bg-gray text-current'}`}>
                             <Users size={12}/> {table.capacity}
                           </div>
                         </div>
@@ -301,9 +290,33 @@ export default function CustomerBookingPage() {
               </div>
             </div>
           </div>
-
         </form>
       </div>
+
+      {/* ================= SUCCESS MODAL ================= */}
+      <dialog id="success_modal" className="modal">
+        <div className="modal-box text-center p-8 max-w-sm sm:max-w-md">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="w-10 h-10 text-green-500" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">Đặt bàn thành công!</h3>
+          <p className="text-gray-600 mb-8 leading-relaxed">
+            Cảm ơn <b>{formData.customerName}</b>. Bàn <b className="text-orange-600">{selectedTable?.name}</b> đã được giữ cho bạn vào lúc <b>{formData.time}</b> ngày <b>{formData.date}</b>.
+          </p>
+          <div className="modal-action justify-center mt-0">
+            <button 
+              onClick={() => window.location.reload()} 
+              className="w-full bg-darkgrey text-white px-8 py-4 rounded-xl font-semibold hover:bg-gray-800 transition-colors"
+            >
+              Quay lại trang chủ
+            </button>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button onClick={() => window.location.reload()}>close</button>
+        </form>
+      </dialog>
+
     </div>
   );
 }

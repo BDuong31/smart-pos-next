@@ -9,10 +9,17 @@ export function middleware(request: NextRequest) {
   }
 
   const isAdminSubdomain = hostHeader.startsWith('admin.');
+  const isKitchenSubdomain = hostHeader.startsWith('kitchen.');
 
   if (isAdminSubdomain) {
     console.log('Admin subdomain detected. Rewriting URL to /admin.');
     url.pathname = `/admin${url.pathname}`;
+    return NextResponse.rewrite(url);
+  }
+
+  if (isKitchenSubdomain) {
+    console.log('Kitchen subdomain detected. Rewriting URL to /kitchen.');
+    url.pathname = `/kitchen${url.pathname}`;
     return NextResponse.rewrite(url);
   }
 

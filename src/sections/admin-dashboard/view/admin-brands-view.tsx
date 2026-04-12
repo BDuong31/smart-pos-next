@@ -13,7 +13,7 @@ import { set } from 'zod';
 
 
 const ITEMS_PER_PAGE = 7;
-const getPaginationRange = (currentPage, totalPages) => {
+const getPaginationRange = (currentPage: number, totalPages: number) => {
   const range = [];
   const maxVisiblePages = 7;
   if (totalPages <= maxVisiblePages) { for (let i = 1; i <= totalPages; i++) { range.push(i); } return range; }

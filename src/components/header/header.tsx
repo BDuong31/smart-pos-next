@@ -122,9 +122,7 @@ const Header = () => {
                                         onClick={toggleDropdown}
                                     >
                                         <Image
-                                            src={
-                                                user.avatar !== null ? `${user.avatar.url}` : '/default-avatar.jpg'  
-                                            }
+                                            src={user?.avatar?.url ?? '/default-avatar.jpg'}
                                             alt="avatar"
                                             height={32}
                                             width={32}
