@@ -47,9 +47,15 @@ const cartSlice = createSlice({
             .addCase(fetchCartByUserId.pending, (state) => {
                 state.isLoading = true;
             })
-            .addCase(fetchCartByUserId.fulfilled, (state, action: PayloadAction<ICart>) => {
+            .addCase(fetchCartByUserId.fulfilled, (state, action: PayloadAction<ICart | ICart[]>) => {
                 state.isLoading = false;
-                state.cart = action.payload;
+                
+                if (Array.isArray(action.payload)) {
+                    state.cart = action.payload.length > 0 ? action.payload[0] : null;
+                } else {
+                    state.cart = action.payload;
+                }
+                
                 state.error = null;
             })
             .addCase(fetchCartByUserId.rejected, (state, action) => {

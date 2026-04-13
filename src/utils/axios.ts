@@ -481,9 +481,9 @@ export const endpoints = {
         getCartIds: `${VERSION_PREFIX}/carts/list-by-ids`,
     },
     cartItem: {
-        createCartItem: `${VERSION_PREFIX}/carts/items`,
-        updateCartItem: (id: string) => `${VERSION_PREFIX}/carts/items/${id}`,
-        deleteCartItem: (id: string) => `${VERSION_PREFIX}/carts/items/${id}`,
+        createCartItem: `${VERSION_PREFIX}/carts/item`,
+        updateCartItem: (id: string) => `${VERSION_PREFIX}/carts/item/${id}`,
+        deleteCartItem: (id: string) => `${VERSION_PREFIX}/carts/item/${id}`,
         getCartItems: (cartId?: string, productId?: string, variantId?: string, quantity?: number, note?: string, page?: number, limit?: number) => {
             const params = new URLSearchParams()
             params.append("limit", String(limit))
@@ -495,10 +495,10 @@ export const endpoints = {
             if (quantity !== undefined) params.append("quantity", String(quantity))
             if (note) params.append("note", note)
 
-            return `${VERSION_PREFIX}/carts/items?${params.toString()}`
+            return `${VERSION_PREFIX}/carts/item?${params.toString()}`
         },
-        getCartItemId: (id: string) => `${VERSION_PREFIX}/carts/items/${id}`,
-        getCartItemIds: `${VERSION_PREFIX}/carts/items/list-by-ids`,
+        getCartItemId: (id: string) => `${VERSION_PREFIX}/carts/item/${id}`,
+        getCartItemIds: `${VERSION_PREFIX}/carts/item/list-by-ids`,
     },
     cartItemOption: {
         createCartItemOption: `${VERSION_PREFIX}/carts/item/option`,

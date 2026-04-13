@@ -1,5 +1,5 @@
 import { IApiResponse } from "@/interfaces/api-response";
-import { ICart, ICartItem, ICartItemCreate, ICartItemOption, ICartItemOptionCreate } from "@/interfaces/cart";
+import { ICart, ICartItem, ICartItemCreate, ICartItemDetail, ICartItemOption, ICartItemOptionCreate, ICartItemOptionDetail } from "@/interfaces/cart";
 import { axiosInstance, endpoints } from "@/utils/axios";
 
 export const getCart = async (userId?: string, totalItem?: number, page?: number, limit?: number): Promise<IApiResponse<ICart>> => {
@@ -23,12 +23,12 @@ export const deleteCartItem = async (id: string) => {
     return data;
 }
 
-export const getCartItems = async (cartId?: string, productId?: string, variantId?: string, quantity?: number, note?: string, page?: number, limit?: number): Promise<IApiResponse<ICartItem[]>> => {
+export const getCartItems = async (cartId?: string, productId?: string, variantId?: string, quantity?: number, note?: string, page?: number, limit?: number): Promise<IApiResponse<ICartItemDetail[]>> => {
     const { data } = await axiosInstance.get(endpoints.cartItem.getCartItems(cartId, productId, variantId, quantity, note, page, limit));
     return data;
 }
 
-export const getCartItemId = async (id: string): Promise<ICartItem> => {
+export const getCartItemId = async (id: string): Promise<ICartItemDetail> => {
     const { data } = await axiosInstance.get(endpoints.cartItem.getCartItemId(id));
     return data;
 }
@@ -48,12 +48,12 @@ export const deleteCartItemOption = async (id: string) => {
     return data;
 }
 
-export const getCartItemOptions = async (cartItemId?: string, optionItemId?: string, page?: number, limit?: number): Promise<IApiResponse<ICartItemOption[]>> => {
+export const getCartItemOptions = async (cartItemId?: string, optionItemId?: string, page?: number, limit?: number): Promise<IApiResponse<ICartItemOptionDetail[]>> => {
     const { data } = await axiosInstance.get(endpoints.cartItemOption.getCartItemOptions(cartItemId, optionItemId, page, limit));
     return data;
 }
 
-export const getCartItemOptionId = async (id: string): Promise<ICartItemOption> => {
+export const getCartItemOptionId = async (id: string): Promise<ICartItemOptionDetail> => {
     const { data } = await axiosInstance.get(endpoints.cartItemOption.getCartItemOptionId(id));
     return data;
 }

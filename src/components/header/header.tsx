@@ -53,9 +53,9 @@ const Header = () => {
 
     useEffect(() => {
         if (!cart) {
-            dispatch(fetchCartByUserId(user?.id || '')); 
+            dispatch(fetchCartByUserId(user?.id)); 
         }
-    }, [user?.id, dispatch]);
+    }, [user, dispatch]);
     
     console.log('user', user);
     console.log('cart', cart);

@@ -11,7 +11,11 @@ import { SplashScreen } from '../loading';
 import { IVariant } from '@/interfaces/variant';
 import { IOption, IOptionItem, IProductOptionConfig } from '@/interfaces/option';
 import { getListOptionIds, getListOptionItemIds, getOptionItems, getProductOptionConfigs } from '@/apis/option';
-
+import { createCartItem, createCartItemOption } from '@/apis/cart';
+import { ICartItemCreate } from '@/interfaces/cart';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '@/store/store';
+import { fetchCartByUserId } from '@/store/slices/cartSlice';
 // Các import bạn có thể mở lại khi dùng
 // import { IWishlistCreate } from '@/interfaces/wishlist';
 // import { useUserProfile } from '@/context/user-context';
@@ -30,6 +34,8 @@ const ProductDetails = ( {product}: ProductDetailProps) => {
     // const { userProfile } = useUserProfile();
     // const { isAuthenticated } = useAuth();
     // const { cart, refeshCart, refeshCartItem } = useCart();
+    const dispatch = useDispatch<AppDispatch>();
+    const cart = useSelector((state: RootState) => state.cart.cart);
     const { showToast } = useToast();
 
     // Dữ liệu API
@@ -135,13 +141,32 @@ const ProductDetails = ( {product}: ProductDetailProps) => {
         });
     }
 
-    const handleAddCart = () => {
+    const handleAddCart = async () => {
         if (!selectedVariant) {
             showToast('Vui lòng chọn kích cỡ món ăn.', 'error');
             return;
         }
+
+        const addItemProduct = await createCartItem({
+            cartId: cart?.id || '',
+            productId: product?.id || '',
+            variantId: selectedVariant.id,
+            quantity: 1,
+            note: '',
+        })
+
+        if (selectedOptions.length > 0) {
+            await Promise.all(selectedOptions.map(optionId => {
+                return createCartItemOption({
+                    cartItemId: addItemProduct.data,
+                    optionItemId: optionId,
+                })
+            }
+            ));
+        }
         showToast('Đã thêm vào giỏ hàng!', 'success');
         console.log("Cart Payload:", { variant: selectedVariant, options: selectedOptions });
+        dispatch(fetchCartByUserId(cart?.userId));
     };
 
     const handleBuy = async () => {
