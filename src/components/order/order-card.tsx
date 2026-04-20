@@ -1,17 +1,26 @@
 import React from 'react';
 import OrderItem from './order-item';
-import { orders } from '@/sections/purchase/data/purchase';
 import { IOrder, IOrderItem } from '@/interfaces/order';
 import { IPayment } from '@/interfaces/payment';
-import { IProductVariant } from '@/interfaces/variant';
+import { IVariant } from '@/interfaces/variant';
 import { useRouter } from 'next/navigation';
 
 type Props = {
   order: IOrder | undefined;
   orderItems: IOrderItem[] | undefined;
-  variantMap: Map<string, IProductVariant> | undefined;
+  variantMap: Map<string, IVariant> | undefined;
   payment: IPayment | undefined;
 };
+
+const STATUS = {
+  pending: 'Chờ xử lý',
+  confirmed: 'Đã xác nhận',
+  processing: 'Đang xử lý',
+  served: 'Đã phục vụ',
+  completed: 'Hoàn thành',
+  canceled: 'Đã hủy',
+}
+
 export default function OrderCard({ order, orderItems, variantMap, payment }: Props) {
   const router = useRouter()
 
@@ -25,8 +34,8 @@ export default function OrderCard({ order, orderItems, variantMap, payment }: Pr
   return (
     <div onClick={goToOrderDetail} className="bg-white p-6 rounded-lg shadow-sm cursor-pointer hover:bg-gray-50 transition">
       <div className="pb-3 mb-3">
-        <h2 className="font-bold uppercase">{order?.status}</h2>
-        <p className="text-sm text-gray-500">Order id: {order?.id}</p>
+        <h2 className="font-bold uppercase">{STATUS[order?.status as keyof typeof STATUS]}</h2>
+        <p className="text-sm text-gray-500">Mã đơn hàng: {order?.code}</p>
       </div>
 
       <div>
@@ -36,7 +45,7 @@ export default function OrderCard({ order, orderItems, variantMap, payment }: Pr
             return (
               <div key={item.id} className="relative">
                 <div onClick={(e) => e.stopPropagation()}>
-                  <OrderItem item={item} variant={variantData} />
+                  <OrderItem item={item} variant={variantData as IVariant} />
                 </div>
                 <div className="divider my-1"></div>
               </div>
@@ -46,7 +55,7 @@ export default function OrderCard({ order, orderItems, variantMap, payment }: Pr
       </div>
 
       <div className="flex justify-end text-graymain items-center mt-4 pt-4">
-        <span className="text-lg font-semibold">Total:</span>
+        <span className="text-lg font-semibold">Tổng tiền:</span>
         <span className="text-xl font-bold ml-2">
           ${payment?.amount.toFixed(2)}
         </span>

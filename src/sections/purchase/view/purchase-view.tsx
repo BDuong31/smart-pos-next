@@ -21,13 +21,14 @@ export default function PurchasePage() {
   const [variantMap, setVariantMap] = useState<Map<string, IVariant>>(new Map());
   const [paymentsMap, setPaymentsMap] = useState<Map<string, IPayment>>(new Map());
   const [activeTab, setActiveTab] = useState('All');
-  const tabs = ['All', 'To Pay', 'To Ship', 'To Receive', 'Completed', 'Canceled'];
-  const hiddenTabs = ['all', 'Processing', 'Shipped', 'Delivered', 'Completed', 'Canceled'];
+  const tabs = ['Tất cả', 'Chờ xử lý', 'Đã xác nhận', 'Đang xử lý', 'Đã phục vụ', 'Hoàn thành', 'Đã hủy'];
+  const hiddenTabs = ['all', 'pending', 'confirmed', 'processing', 'served', 'completed', 'canceled'];
   const [loading, setLoading] = useState(true);
 
   const fetchedOrders = async () => {
     setLoading(true);
     try {
+      console.log("Lấy danh sách đơn hàng");
       const response = await getOrders({userId: user?.id}, 1, 100);
       setOrders(response.data);
     } catch (error) {
@@ -77,8 +78,9 @@ export default function PurchasePage() {
   }
 
   React.useEffect(() => {
+    console.log("Lấy danh sách đơn hàng");
     fetchedOrders();
-  }, []);
+  }, [user]);
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -137,9 +139,9 @@ export default function PurchasePage() {
     console.log('List of orders after filtering:', listOrder);
   }, [activeTab]);
 
-  if (loading) {
-    return <SplashScreen className="h-[80vh]" />;
-  }
+  // if (loading) {
+  //   return <SplashScreen className="h-[80vh]" />;
+  // }
   return (
     <div className="w-full">
       <div className="bg-white shadow-sm mb-6 rounded-2xl">
@@ -160,7 +162,7 @@ export default function PurchasePage() {
         {listOrder?.map(order => {
           console.log('Rendering order:', order);
           const orderItems = orderItemsMap.get(order.id) ?? [];
-          const variantMapFiltered = new Map<string, IProductVariant>();
+          const variantMapFiltered = new Map<string, IVariant>();
           orderItems.forEach(item => {
             const variant = variantMap.get(item.variantId);
             if (variant) {
@@ -175,7 +177,7 @@ export default function PurchasePage() {
 
         {listOrder?.length === 0 && (
           <div className="text-center text-gray-500 py-20">
-            <p>You have no orders in this category.</p>
+            <p>Bạn không có đơn hàng nào trong danh mục này.</p>
           </div>
         )}
       </div>

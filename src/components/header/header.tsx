@@ -52,7 +52,7 @@ const Header = () => {
     }, [dispatch, user]);
 
     useEffect(() => {
-        if (!cart) {
+        if (user?.id && !cart) {
             dispatch(fetchCartByUserId(user?.id)); 
         }
     }, [user, dispatch]);
@@ -88,7 +88,6 @@ const Header = () => {
                 <div className="navbar-center hidden lg:flex">
                     <ul className="menu menu-horizontal px-1">
                         <li className="text-darkgrey text-base font-bold"><a href="/">Trang Chủ</a></li>
-                     
                         <li className="text-darkgrey text-base font-bold"><a href="/menu">Thực Đơn</a></li>
                         <li className="text-darkgrey text-base font-bold"><a href="/booking">Đặt bàn</a></li>
                         <li className="text-darkgrey text-base font-bold"><a href="/contact">Liên Hệ</a></li>
@@ -100,10 +99,6 @@ const Header = () => {
                 </div>
                 <div className="navbar-end mr-5">
                     <div className="flex items-center gap-3">
-                        <div className="dropdown dropdown-end">
-                            {/* <SearchPopup /> */}
-                        </div>
-                        <div className="dropdown dropdown-end">
                         <Link href={'/cart'} tabIndex={0} role="button" className="btn btn-ghost btn-circle">
                             <div className="indicator">
                             <CartRegular/>
@@ -112,7 +107,6 @@ const Header = () => {
                             }
                             </div>
                         </Link>
-                        </div>
                         <div className="dropdown dropdown-end">
                             <div tabIndex={0} role="button" className="btn btn-ghost btn-circle">
                                 {user ? (
