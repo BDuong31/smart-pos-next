@@ -17,10 +17,12 @@ export const getMe = createAsyncThunk(
     }
 );
 interface UserState {
+    isLoading: boolean;
     user: IUserProfileDetail | null;
 }
 
 const initialState: UserState = {
+    isLoading: false,
     user: null,
 }
 
@@ -36,11 +38,16 @@ const userSlice = createSlice({
         }
     },
     extraReducers: (builder) => {
-        builder.addCase(getMe.fulfilled, (state, action: PayloadAction<IUserProfileDetail>) => {
-            state.user = action.payload; // Tự động gán khi gọi thành công
+        builder.addCase(getMe.pending, (state) => {
+            state.isLoading = true;
         });
         builder.addCase(getMe.rejected, (state) => {
             state.user = null; // Xóa user nếu token hỏng/hết hạn
+            state.isLoading = false;
+        });
+        builder.addCase(getMe.fulfilled, (state, action: PayloadAction<IUserProfileDetail>) => {
+            state.user = action.payload;
+            state.isLoading = false;
         });
     }
 })

@@ -252,6 +252,7 @@
 import EmailChangeModal from "@/components/email/email-popup";
 import EditRegular from "@/components/icons/edit";
 import DebounceInput from "@/components/input/debounce-input";
+import { SplashScreen } from "@/components/loading";
 import { useToast } from "@/context/toast-context";
 import { RootState } from "@/store/store";
 import Image from "next/image";
@@ -284,6 +285,7 @@ const ROLES = [
 export default function ProfileView() {
     const { showToast } = useToast();
     const user = useSelector((state: RootState) => state.user.user);
+    const loadingUser = useSelector((state: RootState) => state.user.isLoading);
 
     // State form
     const [fullName, setFullName] = React.useState<string>(user?.fullName ?? '');
@@ -291,15 +293,11 @@ export default function ProfileView() {
     const [birthday, setBirthday] = React.useState<string>(() => {
         if (!user?.birthday) return '';
         const date = new Date(user.birthday);
-        console.log("date: ", date)
-        console.log("date.toLocaleDateString('en-CA'): ", date.toLocaleDateString('en-CA'))
-        console.log("date.toISOString().split('T')[0]: ", date.toISOString().split('T')[0])
         return date.toLocaleDateString('en-CA');
     });
     const [avatarUrl, setAvatarUrl] = React.useState<string>(user?.avatar?.url ?? '/default-avatar.jpg');
     const [isLoading, setIsLoading] = React.useState(false);
 
-    // 2. Logic tự động xác định hạng hiện tại và hạng kế tiếp
     const currentRankName = user?.rank?.name || "Đồng";
     const currentRankIndex = RANKS_CONFIG.findIndex(r => r.name === currentRankName);
     const rank = RANKS_CONFIG[currentRankIndex] || RANKS_CONFIG[0];
@@ -307,10 +305,8 @@ export default function ProfileView() {
     const nextRank = currentRankIndex < RANKS_CONFIG.length - 1 ? RANKS_CONFIG[currentRankIndex + 1] : null;
     const isMaxRank = !nextRank;
 
-    // Tính điểm còn thiếu: Lấy minPoint của hạng sau trừ đi điểm hiện tại
     const pointsToNextRank = nextRank ? nextRank.minPoint - (user?.currentPoints || 0) : 0;
     
-    // Tính % progress: (Điểm hiện tại / Điểm cần để lên hạng tiếp theo)
     const progressPercent = isMaxRank ? 100 : Math.min(((user?.currentPoints || 0) / nextRank!.minPoint) * 100, 100);
 
     const hideEmail = (email: string) => {
@@ -327,6 +323,7 @@ export default function ProfileView() {
         setFullName(user?.fullName ?? '');
         setEmail(user?.email ?? '');
         setBirthday(new Date(user?.birthday ?? '').toLocaleDateString('vi-VN'));
+        setAvatarUrl(user?.avatar?.url ?? '/default-avatar.jpg');
     }, [user]);
 
     const handleEmailChange = (oldEmail: string, newEmail: string) => {
@@ -346,7 +343,17 @@ export default function ProfileView() {
         }, 800);
     };
 
-    console.log("ngày sinh: ", birthday)
+    const formatDateToInput = (dateStr: string) => {
+        if (!dateStr || !dateStr.includes('/')) return dateStr;
+        const [day, month, year] = dateStr.split('/');
+        const formatDay = day.padStart(2, '0');
+        const formatMonth = month.padStart(2, '0');
+        return `${year}-${formatMonth}-${formatDay}`;
+    };
+
+    if (loadingUser) {
+        return <SplashScreen className="h-[80vh]" />;
+    }
 
     return (
         <div className="w-full">
@@ -430,13 +437,13 @@ export default function ProfileView() {
                             </div>
                             <div className="space-y-3">
                                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Ngày sinh</label>
-                                <input
+                                <DebounceInput
                                     type="date"
                                     name='birthday'
                                     id='birthday'
                                     placeholder='dd/mm/yyyy'
-                                    value={birthday}
-                                    onChange={(e) => setBirthday(e.target.value)}
+                                    value={formatDateToInput(birthday)}
+                                    onChange={(val: string) => setBirthday(val)}
                                     className="w-full px-4 py-3 border border-darkgrey rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>

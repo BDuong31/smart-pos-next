@@ -45,7 +45,7 @@ export default function SideRight() {
                 </details>
             </li>
             <li className={pathname === "/user/purchase" ? "text-blue" : pathname === `/user/purchase/order/${params.id}` ? "text-blue" : pathname === `/user/purchase/cancellation/${params.id}` ? "text-blue" : ""}>
-                <a href="/user/purchase" className="font-bold px-0"><ClipboardRegular width={24} height={24} className={`${pathname === "/user/purchase" ? "text-blue" : "text-darkgrey"}`} /> My Purchase</a>
+                <a href="/user/purchase" className="font-bold px-0"><ClipboardRegular width={24} height={24} className={`${pathname === "/user/purchase" ? "text-blue" : "text-darkgrey"}`} />Đơn hàng</a>
             </li>
             </ul>
         </aside>
