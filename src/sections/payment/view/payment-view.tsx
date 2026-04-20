@@ -6,9 +6,11 @@ import Image from "next/image";
 import React from "react";
 import { useRouter } from "next/navigation";
 import { IPayment } from "@/interfaces/payment";
+import { IOrder } from "@/interfaces/order";
 import { getPaymentById, initiatePayment } from "@/apis/payment";
 import { useToast } from "@/context/toast-context";
 import SplashScreen from "@/components/loading/splash-sceen";
+import { getOrderId } from "@/apis/order";
 
 interface PaymentViewProps {
     id: string;
@@ -28,25 +30,26 @@ const paymentOptions = [
         icon: <Image src="/momo.png" alt="Momo" width={58} height={58} />
     },
     {
-        id: 'zalopay',
+        id: 'zalo',
         title: 'ZaloPay',
         description: 'Pay with ZaloPay wallet',
         icon: <Image src="/zalopay.png" alt="ZaloPay" width={58} height={58} />
     },
     {
-        id: 'cod',
+        id: 'cash',
         title: 'Cash on Delivery',
         description: 'cash on delivery.',
         icon: <CashRegular width={58} height={58} />
     },
 ]
 
-type PaymentMethodId = 'vnpay' | 'momo' | 'zalopay' | 'cod';
+type PaymentMethodId = 'vnpay' | 'momo' | 'zalo' | 'cash';
 
 export default function PaymentView({ id }: PaymentViewProps) {
     const router = useRouter();
     const [payment, setPayment] = React.useState<IPayment | null>(null);
-    const [selectedMethod, setSelectedMethod] = React.useState<PaymentMethodId>('cod');
+    const [order, setOrder] = React.useState<IOrder | null>(null);
+    const [selectedMethod, setSelectedMethod] = React.useState<PaymentMethodId>('cash');
     const [selectedMethodChild, setSelectedMethodChild] = React.useState<string>('');
 
     const [loading, setLoading] = React.useState(true);
@@ -73,9 +76,30 @@ export default function PaymentView({ id }: PaymentViewProps) {
         }
     }
 
+    const fetcheOrder = async (orderId: string) => {
+        setLoading(true);
+        try {
+            const response = await getOrderId(orderId);
+            if (response) {
+                setOrder(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching order:', error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+
     React.useEffect(() => {
         fetchePayment(id);
     }, [id]);
+
+    React.useEffect(() => {
+        if (payment?.orderId) {
+            fetcheOrder(payment.orderId);
+        }
+    }, [payment]);
 
     React.useEffect(() => {
         if (payment?.method) {
@@ -96,8 +120,8 @@ export default function PaymentView({ id }: PaymentViewProps) {
                 methodChild: selectedMethodChild === '' ? '' : selectedMethodChild,
             })
 
-            if (selectedMethod === 'cod') {
-                showToast('Payment successful! Your order is being processed.', 'success');
+            if (selectedMethod === 'cash') {
+                showToast('Thanh toán thành công! Đơn hàng của bạn đang được xử lý.', 'success');
                 router.push(`/order-result/${id}?resultCode=-1`);
             } else {
                 if (response.success && response.paymentUrl) {
@@ -109,7 +133,7 @@ export default function PaymentView({ id }: PaymentViewProps) {
         } catch (error) {
             console.error('Payment initiation failed:', error);
             console.error(error);
-            showToast('Payment initiation failed. Please try again.', 'error');
+            showToast('Khởi tạo thanh toán thất bại. Vui lòng thử lại.', 'error');
             setError('Payment initiation failed. Please try again.');
         } finally {
             setLoading(false);
@@ -125,16 +149,16 @@ export default function PaymentView({ id }: PaymentViewProps) {
             <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-8">
                 <h1 className="text-lg font-bold tracking-widest mb-4">
-                    PAYMENT METHOD
+                    {payment ? `Thanh toán đơn hàng #${order?.code}` : 'Payment Details'}
                 </h1>
-                <p className="text-sm font-bold text-graymain">TOTAL PAYMENT</p>
+                <p className="text-sm font-bold text-graymain">TỔNG TIỀN THANH TOÁN</p>
                 <p className="text-5xl font-bold text-blue mt-2">
                     ${payment ? payment.amount.toFixed(2) : '0.00'}
                 </p>
                 </div>
                 <div className="border border-gray-400 rounded-lg p-5 grid grid-cols-1 md:grid-cols-2 md:gap-8">
                     <div className="space-y-4">
-                        <h2 className="text-xl font-bold mb-4">Select Payment Method</h2>
+                        <h2 className="text-xl font-bold mb-4">Chọn Phương Thức Thanh Toán</h2>
                         {paymentOptions.map((option) => (
                             <div
                                 key={option.id}
@@ -171,13 +195,13 @@ export default function PaymentView({ id }: PaymentViewProps) {
                         className="w-full md:w-1/2 py-3 border border-gray-400 rounded-lg font-semibold hover:bg-gray"
                         onClick={() => router.back()}
                     >
-                        BACK
+                        QUAY LẠI
                     </button>
                     <button className="w-full md:w-1/2 py-3 bg-[#000000] text-white rounded-lg font-semibold"
                         onClick={handlePayment}
                         disabled={loading}
                     >
-                        PAYMENT NOW
+                        THANH TOÁN NGAY
                     </button>
                 </div>
             </div>
