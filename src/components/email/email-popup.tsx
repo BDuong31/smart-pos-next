@@ -17,7 +17,7 @@ export default function EmailChangeModal({ modalId, onEmailChange }: Props) {
   return (
     <dialog id={modalId} className="modal">
       <div className="modal-box">
-        <h3 className="font-bold text-lg">Change Email</h3>
+        <h3 className="font-bold text-lg">Thay đổi email</h3>
         <p className="py-4 text-sm text-gray-500">
         </p>
 
@@ -33,12 +33,12 @@ export default function EmailChangeModal({ modalId, onEmailChange }: Props) {
           <div className="space-y-4">
             <div className="form-control">
               <label className="label">
-                <span className="label-text">Email Old</span>
+                <span className="label-text">Email hiện tại</span>
               </label>
               <DebounceInput
                 type="email"
                 value={emailOld}
-                placeholder="Enter your old email"
+                placeholder="Nhập email hiện tại"
                 className="input input-bordered w-full"
                 onChange={(value: string) => setEmailOld(value)}
                 required
@@ -46,12 +46,12 @@ export default function EmailChangeModal({ modalId, onEmailChange }: Props) {
             </div>
             <div className='form-control'>
               <label className='label'>
-                <span className='label-text'>Email New</span>
+                <span className='label-text'>Email mới</span>
               </label>
               <DebounceInput
                 type="email"
                 value={email}
-                placeholder="Enter your new email"
+                placeholder="Nhập email mới"
                 className="input input-bordered w-full"
                 onChange={(value: string) => setEmail(value)}
                 required
@@ -66,8 +66,8 @@ export default function EmailChangeModal({ modalId, onEmailChange }: Props) {
                     (document.getElementById(modalId) as HTMLDialogElement)?.close();
                 }}
                 className="btn"
-            >Cancel</button>
-            <button type="submit" className="btn btn-primary">Save</button>
+            >Hủy</button>
+            <button type="submit" className="btn btn-primary bg-darkgrey text-white px-2">Lưu</button>
           </div>
         </form>
       </div>

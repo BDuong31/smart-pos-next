@@ -73,28 +73,24 @@ const CartItem = ({ type, item, variant, options, onRefreshCart }: CartItemProps
     };
 
     // Tính tổng tiền dựa trên prop options
-    const optionsTotal = options.reduce((acc: number, opt: ICartItemOptionDetail) => {
+    const optionsTotal = options?.reduce((acc: number, opt: ICartItemOptionDetail) => {
         return acc + (opt.optionItem?.priceExtra || 0);
     }, 0) || 0;
 
-    const basePrice = variant?.priceDiff || item?.product?.basePrice || 0;
-    const itemTotalPrice = basePrice + optionsTotal;
+    const basePrice = item?.product?.basePrice || 0;
+    const priceDiff = variant?.priceDiff || 0;
+    const quantity = item?.quantity || 1;
+
+    const itemTotalPrice = (basePrice + priceDiff + optionsTotal) * quantity;
 
     return (
         <div className={`grid grid-cols-3 gap-4 bg-none ${isUpdating ? 'opacity-50 pointer-events-none' : ''}`}>
-            {!imageDefault ? (
-                <div className='w-full max-h-[200px] object-cover rounded-2xl flex items-center justify-center bg-slate-100'>
-                    <SplashScreen className='h-[50px]' />
-                </div>
-            ) : (
-                <Image 
-                    src={imageDefault?.url ?? '/logo.png'} 
-                    width={500} height={500} 
-                    alt={item?.product?.name || 'Product Image'} 
-                    className='w-full max-h-[200px] object-cover rounded-2xl border border-slate-100' 
-                />
-            )}
-            
+            <Image 
+                src={imageDefault?.url ?? '/logo.png'} 
+                width={500} height={500} 
+                alt={item?.product?.name || 'Product Image'} 
+                className='w-full max-h-[200px] object-contain rounded-2xl border border-slate-100' 
+            />
             <div className='col-span-2'>
                 <div className='flex flex-col justify-between h-full'>
                     {variant ? (

@@ -1,5 +1,5 @@
 import { IApiResponse } from "@/interfaces/api-response";
-import { ICart, ICartItem, ICartItemCreate, ICartItemDetail, ICartItemOption, ICartItemOptionCreate, ICartItemOptionDetail } from "@/interfaces/cart";
+import { ICart, ICartItem, ICartItemCreate, ICartItemDetail, ICartItemOption, ICartItemOptionCreate, ICartItemOptionDetail, ICartItemUpdate } from "@/interfaces/cart";
 import { axiosInstance, endpoints } from "@/utils/axios";
 
 export const getCart = async (userId?: string, totalItem?: number, page?: number, limit?: number): Promise<IApiResponse<ICart>> => {
@@ -13,7 +13,7 @@ export const createCartItem = async (cartItem: ICartItemCreate): Promise<string>
     return data;
 }
 
-export const updateCartItem = async (id: string, cartItem: ICartItemCreate) => {
+export const updateCartItem = async (id: string, cartItem: ICartItemUpdate) => {
     const { data } = await axiosInstance.patch(endpoints.cartItem.updateCartItem(id), cartItem);
     return data;
 }

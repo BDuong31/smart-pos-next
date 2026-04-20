@@ -8,6 +8,7 @@ import { createCategory } from '@/apis/category';
 import { get } from 'http';
 import { id } from 'zod/v4/locales';
 import { IReservationQuery } from '@/interfaces/reservation';
+import { verify } from 'crypto';
 // Tạo một instance của axios với cấu hình mặc định
 export const axiosInstance = axios.create({ 
     baseURL: HOST_API, 
@@ -323,7 +324,7 @@ export const endpoints = {
         updateOptionItem: (id: string) => `${VERSION_PREFIX}/options/group/item/${id}`,
         deleteOptionItem: (id: string) => `${VERSION_PREFIX}/options/group/item/${id}`,
 
-        setProductOptionConfig: `${VERSION_PREFIX}/options/product/config`,
+        setProductOptionConfig: `${VERSION_PREFIX}/option/product/config`,
         getProductOptionConfigs: (productId?: string, optionGroupId?: string, page?: number, limit?: number) => {
             const params = new URLSearchParams()
 
@@ -333,11 +334,11 @@ export const endpoints = {
             if (productId) params.append("productId", productId)
             if (optionGroupId) params.append("optionGroupId", optionGroupId)
 
-            return `${VERSION_PREFIX}/options/product/config?${params.toString()}`
+            return `${VERSION_PREFIX}/option/product/config?${params.toString()}`
         },
-        getProductOptionConfigsById: (id: string) => `${VERSION_PREFIX}/options/product/config/${id}`,
-        getProductOptionConfigsByProductId: (productId: string) => `${VERSION_PREFIX}/options/product/config/${productId}`,
-        deleteProductOptionConfigById: (id: string) => `${VERSION_PREFIX}/options/product/config/${id}`,
+        getProductOptionConfigsById: (id: string) => `${VERSION_PREFIX}/option/product/config/${id}`,
+        getProductOptionConfigsByProductId: (productId: string) => `${VERSION_PREFIX}/option/product/config/${productId}`,
+        deleteProductOptionConfigById: (id: string) => `${VERSION_PREFIX}/option/product/config/${id}`,
     },
     combo: {
         createCombo: `${VERSION_PREFIX}/combos`,
@@ -517,12 +518,117 @@ export const endpoints = {
         getCartItemOptionId: (id: string) => `${VERSION_PREFIX}/carts/item/option/${id}`,
         getCartItemOptionIds: `${VERSION_PREFIX}/carts/item/option/list-by-ids`,        
     },
-    order: {},
-    orderItem: {},
-    orderItemOption: {},
-    orderTable: {},
-    orderVoucher: {},
-    invoice: {},
+    order: {
+        createOrder: `${VERSION_PREFIX}/orders`,
+        updateOrder: (id: string) => `${VERSION_PREFIX}/orders/${id}`,
+        deleteOrder: (id: string) => `${VERSION_PREFIX}/orders/${id}`,
+        getOrders: (userId?: string, totalAmount?: number, status?: string, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (userId) params.append("userId", userId)
+            if (totalAmount) params.append("totalAmount", String(totalAmount))
+            if (status) params.append("status", status)
+
+            return `${VERSION_PREFIX}/orders?${params.toString()}`
+        },
+        getOrderById: (id: string) => `${VERSION_PREFIX}/orders/${id}`,
+        getListOrderIds: `${VERSION_PREFIX}/orders/list-by-ids`,
+    },
+    orderItem: {
+        createOrderItem: `${VERSION_PREFIX}/orders/item`,
+        updateOrderItem: (id: string) => `${VERSION_PREFIX}/orders/item/${id}`,
+        deleteOrderItem: (id: string) => `${VERSION_PREFIX}/orders/item/${id}`,
+        getOrderItem: (orderId?: string, productId?: string, variantId?: string, productName?: string, quantity?: number, price?: number, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (orderId) params.append("orderId", orderId)
+            if (productId) params.append("productId", productId)
+            if (variantId) params.append("variantId", variantId)
+            if (productName) params.append("productName", productName)
+            if (quantity) params.append("quantity", String(quantity))
+            if (price) params.append("price", String(price))
+
+            return `${VERSION_PREFIX}/orders/item?${params.toString()}`
+        },
+        getOrderItemId: (id: string) => `${VERSION_PREFIX}/orders/item/${id}`,
+        getOrderItemIds: `${VERSION_PREFIX}/orders/item/list-by-ids`,
+    },
+    orderItemOption: {
+        createOrderItemOption: `${VERSION_PREFIX}/orders/item/option`,
+        updateOrderItemOption: (id: string) => `${VERSION_PREFIX}/orders/item/option/${id}`,
+        deleteOrderItemOption: (id: string) => `${VERSION_PREFIX}/orders/item/option/${id}`,
+        getOrderItemOption: (orderItemId?: string, optionItemId?: string, optionName?: string, price?: number, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (orderItemId) params.append("orderItemId", orderItemId)
+            if (optionItemId) params.append("optionItemId", optionItemId)
+            if (optionName) params.append("optionName", optionName)
+            if (price) params.append("price", String(price))
+
+            return `${VERSION_PREFIX}/orders/item/option?${params.toString()}`
+        },
+        getOrderItemOptionId: (id: string) => `${VERSION_PREFIX}/orders/item/option/${id}`,
+        getOrderItemOptionIds: `${VERSION_PREFIX}/orders/item/option/list-by-ids`,
+    },
+    orderTable: {
+        createOrderTable: `${VERSION_PREFIX}/orders/table`,
+        updateOrderTable: (id: string) => `${VERSION_PREFIX}/orders/table/${id}`,
+        deleteOrderTable: (id: string) => `${VERSION_PREFIX}/orders/table/${id}`,
+        getOrderTable: (orderId?: string, tableId?: string, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (orderId) params.append("orderId", orderId)
+            if (tableId) params.append("tableId", tableId)
+
+            return `${VERSION_PREFIX}/orders/table?${params.toString()}`
+        },
+        getOrderTableId: (id: string) => `${VERSION_PREFIX}/orders/table/${id}`,
+        getOrderTableIds: `${VERSION_PREFIX}/orders/table/list-by-ids`,
+    },
+    orderVoucher: {
+        createOrderVoucher: `${VERSION_PREFIX}/orders/voucher`,
+        updateOrderVoucher: (id: string) => `${VERSION_PREFIX}/orders/voucher/${id}`,
+        deleteOrderVoucher: (id: string) => `${VERSION_PREFIX}/orders/voucher/${id}`,
+        getOrderVoucher: (orderId?: string, voucherId?: string, discountApplied?: number, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (orderId) params.append("orderId", orderId)
+            if (voucherId) params.append("voucherId", voucherId)
+            if (discountApplied) params.append("discountApplied", String(discountApplied))
+
+            return `${VERSION_PREFIX}/orders/voucher?${params.toString()}`
+        },
+        getOrderVoucherId: (id: string) => `${VERSION_PREFIX}/orders/voucher/${id}`,
+        getOrderVoucherIds: `${VERSION_PREFIX}/orders/voucher/list-by-ids`,
+    },
+    invoice: {
+        createInvoice: `${VERSION_PREFIX}/invoices`,
+        updateInvoice: (id: string) => `${VERSION_PREFIX}/invoices/${id}`,
+        deleteInvoice: (id: string) => `${VERSION_PREFIX}/invoices/${id}`,
+        getInvoices: (orderId?: string, taxCode?: string, issuedAt?: Date, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (orderId) params.append("orderId", orderId)
+            if (taxCode) params.append("taxCode", taxCode)
+            if (issuedAt) params.append("issuedAt", issuedAt.toISOString())
+
+            return `${VERSION_PREFIX}/invoices?${params.toString()}`
+        },
+        getInvoiceId: (id: string) => `${VERSION_PREFIX}/invoices/${id}`,
+        getListInvoiceIds: `${VERSION_PREFIX}/invoices/list-by-ids`,
+    },
     voucher: {
         createVoucher: `${VERSION_PREFIX}/vouchers`,
         updateVoucher: (id: string) => `${VERSION_PREFIX}/vouchers/${id}`,
@@ -546,7 +652,31 @@ export const endpoints = {
         getVoucherId: (id: string) => `${VERSION_PREFIX}/vouchers/${id}`,
         getListVoucherIds: `${VERSION_PREFIX}/vouchers/list-by-ids`,
     },
-    payment: {},
+    payment: {
+        createPayment: `${VERSION_PREFIX}/payments`,
+        updatePayment: (id: string) => `${VERSION_PREFIX}/payments/${id}`,
+        deletePayment: (id: string) => `${VERSION_PREFIX}/payments/${id}`,
+        getPayments: (orderId?: string, externalTransactionId?: string, method?: string, status?: string, paidAt?: Date, page?: number, limit?: number) => {
+            const params = new URLSearchParams()
+            params.append("limit", String(limit))
+            params.append("page", String(page))
+
+            if (orderId) params.append("orderId", orderId)
+            if (externalTransactionId) params.append("externalTransactionId", externalTransactionId)
+            if (method) params.append("method", method)
+            if (status) params.append("status", status)
+            if (paidAt) params.append("paidAt", paidAt.toISOString())
+
+            return `${VERSION_PREFIX}/payments?${params.toString()}`
+        },
+        getPaymentId: (id: string) => `${VERSION_PREFIX}/payments/${id}`,
+        getListPaymentIds: `${VERSION_PREFIX}/payments/list-by-ids`,
+        initiatePayment: `${VERSION_PREFIX}/payments/initiate`,
+        verifyPayment: `${VERSION_PREFIX}/payments/verify`,
+        queryStatus: `${VERSION_PREFIX}/payments/query-status`,
+        refundPayment: `${VERSION_PREFIX}/payments/refund`,
+        cancelPayment: `${VERSION_PREFIX}/payments/cancel`,
+    },
     supplier: {
         createSupplier: `${VERSION_PREFIX}/suppliers`,  
         getSuppliers: (name?: string, page?: number, limit?: number) => {

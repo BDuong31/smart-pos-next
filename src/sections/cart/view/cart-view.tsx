@@ -136,7 +136,7 @@ export default function CartView() {
             const variant = variantMap[item.variantId];
             if (!variant) return acc;
 
-            const basePrice = variant.priceDiff || item.product?.basePrice || 0;
+            const basePrice = variant.priceDiff + item.product?.basePrice;
             
             // Tính tổng tiền các Topping/Option của item này
             const optionsPrice = optionMap[item.id]?.reduce((optAcc: number, opt: ICartItemOptionDetail) => {
@@ -198,7 +198,7 @@ export default function CartView() {
                     </div>
                 </div>
                 
-                <div className='bg-fawhite lg:p-0 px-7 p-4 lg:pb-7 rounded-xl lg:bg-transparent'>
+                <div className='bg-fawhite px-7 p-4 lg:pb-7 rounded-xl lg:bg-transparent'>
                     <h1 className='text-2xl font-semibold py-5'>Tóm tắt đơn hàng</h1>
                     <div className='flex flex-col gap-2 text-[15px]'>
                         <div className='flex flex-row justify-between'>
