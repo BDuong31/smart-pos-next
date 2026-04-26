@@ -324,7 +324,7 @@ export const endpoints = {
         updateOptionItem: (id: string) => `${VERSION_PREFIX}/options/group/item/${id}`,
         deleteOptionItem: (id: string) => `${VERSION_PREFIX}/options/group/item/${id}`,
 
-        setProductOptionConfig: `${VERSION_PREFIX}/option/product/config`,
+        setProductOptionConfig: `${VERSION_PREFIX}/options/product/config`,
         getProductOptionConfigs: (productId?: string, optionGroupId?: string, page?: number, limit?: number) => {
             const params = new URLSearchParams()
 
@@ -334,11 +334,11 @@ export const endpoints = {
             if (productId) params.append("productId", productId)
             if (optionGroupId) params.append("optionGroupId", optionGroupId)
 
-            return `${VERSION_PREFIX}/option/product/config?${params.toString()}`
+            return `${VERSION_PREFIX}/options/product/config?${params.toString()}`
         },
-        getProductOptionConfigsById: (id: string) => `${VERSION_PREFIX}/option/product/config/${id}`,
-        getProductOptionConfigsByProductId: (productId: string) => `${VERSION_PREFIX}/option/product/config/${productId}`,
-        deleteProductOptionConfigById: (id: string) => `${VERSION_PREFIX}/option/product/config/${id}`,
+        getProductOptionConfigsById: (id: string) => `${VERSION_PREFIX}/options/product/config/${id}`,
+        getProductOptionConfigsByProductId: (productId: string) => `${VERSION_PREFIX}/options/product/config/${productId}`,
+        deleteProductOptionConfigById: (id: string) => `${VERSION_PREFIX}/options/product/config/${id}`,
     },
     combo: {
         createCombo: `${VERSION_PREFIX}/combos`,

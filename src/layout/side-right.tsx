@@ -21,7 +21,7 @@ export default function SideRight() {
         <aside className="w-64">
             <div className="flex items-center gap-4 mb-8">
             <div className="w-12 h-12">
-                <Image src={user?.avatar.url || "/default-avatar.jpg"} alt="avatar" width={48} height={48} className="w-12 h-12 rounded-full"/>
+                <Image src={user?.avatar?.url || "/default-avatar.jpg"} alt="avatar" width={48} height={48} className="w-12 h-12 rounded-full"/>
             </div>
             <div>
                 <div className="font-bold">{user?.fullName}</div>
