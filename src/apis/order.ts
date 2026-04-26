@@ -17,7 +17,7 @@ export const deleteOrder = async (id: string) => {
     return data
 }
 
-export const getOrderId = async (id: string): Promise<IOrderDetail> => {
+export const getOrderId = async (id: string): Promise<IApiResponse<IOrderDetail>> => {
     const { data } = await axiosInstance.get(endpoints.order.getOrderById(id))
     return data
 }

@@ -106,7 +106,7 @@ export default function PurchasePage() {
 
           const payment = await fetchePaymentById(order.id);
           if (payment) {
-            paymentsMapTemp.set(order.id, payment[0]);
+            paymentsMapTemp.set(order.id, payment);
           }
         }
 
