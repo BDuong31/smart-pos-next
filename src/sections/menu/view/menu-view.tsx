@@ -17,7 +17,6 @@ const ITEMS_PER_PAGE = 9;
 const getPaginationRange = (currentPage: number, totalPages: number) => {
     const range = [];
     const maxVisiblePages = 7;
-    
     if (totalPages <= maxVisiblePages) {
         for (let i = 1; i <= totalPages; i++) {
             range.push(i);
@@ -149,7 +148,6 @@ export default function MenuView() {
             <div>
                 <Image src="/banner.png" width={1320} height={395} alt="New Drops" className='w-full rounded-3xl mb-7 lg:mb-0 max-h-[400px]' />
             </div>
-            
             {/* Thanh điều khiển lớn (Desktop) */}
             <div className='hidden lg:flex justify-between px-2 py-7'>
                 <div className=''>
@@ -222,44 +220,60 @@ export default function MenuView() {
                         <p className='text-center text-gray-500'>Không tồn tại món.</p>
                     )}  
                     {totalPages > 1 && (
-                        <div className="flex justify-center items-center space-x-2 mt-12">
+                        /* - mt-8 (Mobile) -> mt-12 (PC)
+                        - space-x-1 (Mobile) -> space-x-2 (PC) để các nút không dính nhau trên màn hình hẹp
+                        */
+                        <div className="flex justify-center items-center space-x-1 sm:space-x-2 mt-8 sm:mt-12 w-full">
+                            
                             {/* Nút PREVIOUS */}
                             <button 
                                 onClick={goToPrevPage}
                                 disabled={currentPage === 1}
-                                className="p-2 border rounded-xl disabled:opacity-50 hover:bg-gray-100 transition flex items-center gap-1 font-semibold uppercase px-4"
+                                className="p-2 border rounded-xl disabled:opacity-50 hover:bg-gray-100 transition flex items-center gap-1 font-semibold uppercase px-3 sm:px-4 text-xs sm:text-base"
                             >
-                                <GrFormPrevious size={18} /> TRƯỚC
+                                <GrFormPrevious size={18} /> 
+                                <span className="hidden sm:inline">TRƯỚC</span>
                             </button>
                             
-                            {/* Các Nút Trang và Dấu Ba Chấm */}
-                            {pageNumbers.map((item, index) => (
-                                <React.Fragment key={index}>
-                                    {item === '...' ? (
-                                        <span className="px-3 py-2 text-gray-700">...</span>
-                                    ) : (
-                                        <button
-                                            onClick={() => goToPage(item as number)}
-                                            className={`px-4 py-2 rounded-xl font-semibold transition border ${
-                                                currentPage === item 
-                                                    ? 'bg-black text-white border-black bg-neutral-950' // Trang hiện tại: nền đen
-                                                    : 'text-black border-gray-300 hover:bg-gray-100' // Trang khác: nền trắng, border nhẹ
-                                            }`}
-                                        >
-                                            {item}
-                                        </button>
-                                    )}
-                                </React.Fragment>
-                            ))}
+                            {/* Container cho số trang: Cho phép cuộn ngang trên Mobile cực hẹp */}
+                            <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar px-1">
+                                {pageNumbers.map((item, index) => (
+                                    <React.Fragment key={index}>
+                                        {item === '...' ? (
+                                            <span className="px-1 sm:px-3 py-2 text-gray-700">...</span>
+                                        ) : (
+                                            <button
+                                                onClick={() => goToPage(item as number)}
+                                                /* - Kích thước nút: nhỏ hơn trên Mobile (px-3 py-1.5) 
+                                                - Font size: nhỏ hơn (text-sm)
+                                                */
+                                                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl font-semibold transition border text-sm sm:text-base ${
+                                                    currentPage === item 
+                                                        ? 'bg-neutral-950 text-white border-black' 
+                                                        : 'text-black border-gray-300 hover:bg-gray-100'
+                                                }`}
+                                            >
+                                                {item}
+                                            </button>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                            </div>
 
                             {/* Nút NEXT */}
                             <button 
                                 onClick={goToNextPage}
                                 disabled={currentPage === totalPages}
-                                className="p-2 border rounded-xl disabled:opacity-50 hover:bg-gray-100 transition flex items-center gap-1 font-semibold uppercase px-4"
+                                className="p-2 border rounded-xl disabled:opacity-50 hover:bg-gray-100 transition flex items-center gap-1 font-semibold uppercase px-3 sm:px-4 text-xs sm:text-base"
                             >
-                                SAU <GrFormNext size={18} />
+                                <span className="hidden sm:inline">SAU</span>
+                                <GrFormNext size={18} />
                             </button>
+
+                            <style jsx global>{`
+                                .no-scrollbar::-webkit-scrollbar { display: none; }
+                                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+                            `}</style>
                         </div>
                     )}
                 </div>

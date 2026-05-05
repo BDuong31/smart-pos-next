@@ -44,7 +44,7 @@ export const verifyPayment = async (gateway: string, externalPaymentId: string):
 
 export const queryStatus = async (gateway: string, externalPaymentId: string): Promise<string> => {
     const { data } = await axiosInstance.post(endpoints.payment.queryStatus, { gateway, externalPaymentId });
-    return data;
+    return data.status;
 }
 
 export const refundPayment = async (paymentId: string, amount: number): Promise<IPayment> => {

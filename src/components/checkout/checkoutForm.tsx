@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from '@/context/toast-context';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
+import { getTableById } from '@/apis/table';
+import { ITableDetail } from '@/interfaces/table';
 
 export type CheckoutFormData = {
   tableId?: string | null;
@@ -16,15 +18,28 @@ type CheckoutFormProps = {
 
 const CheckoutForm = ({ onSubmit }: CheckoutFormProps) => {
   const user = useSelector((state: RootState) => state.user.user);
+  const tableId = localStorage.getItem('customer_table_id');
   const { showToast } = useToast();
 
   const [formData, setFormData] = useState<CheckoutFormData>({
-    tableId: '',
+    tableId: tableId,
     note: ''
   });
 
+  const [table, setTable] = useState<ITableDetail | null>(null);
   const [isCheckYearOld, setIsCheckYearOld] = useState(false);
   const [isCheckReceiveEmail, setIsCheckReceiveEmail] = useState(false);
+
+  const fetchTable = async () => {
+    const table = await getTableById(tableId || '');
+    if(table){
+      setTable(table.data)
+    }
+  };
+  
+  useEffect(() => {
+    fetchTable();
+  }, [tableId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -35,9 +50,13 @@ const CheckoutForm = ({ onSubmit }: CheckoutFormProps) => {
   };
 
   const handleSubmitClick = () => {
-    // Với F&B tại quán, nếu bạn bắt buộc tuổi thì mới chặn, nếu không có thể bỏ qua.
     if (!isCheckYearOld) {
       showToast('Vui lòng xác nhận bạn trên 13 tuổi.', 'error');
+      return;
+    }
+
+    if (!tableId) {
+      showToast('Vui lòng quyét mã QR tại bàn để tiếp tục.', 'error');
       return;
     }
     onSubmit(formData);
@@ -45,8 +64,6 @@ const CheckoutForm = ({ onSubmit }: CheckoutFormProps) => {
 
   return (
     <div className='space-y-6'>
-      
-      {/* THÔNG TIN KHÁCH HÀNG (Dựa vào User đã đăng nhập) */}
       <div>
         <h1 className="text-2xl font-semibold mb-2">Thông tin khách hàng</h1>
         <div className='p-4 bg-white rounded-lg shadow-sm border border-slate-100 flex flex-col gap-1'>
@@ -66,16 +83,11 @@ const CheckoutForm = ({ onSubmit }: CheckoutFormProps) => {
         <h1 className='text-2xl font-semibold mb-4'>Thông tin gọi món</h1>
         <div className='space-y-4'>
           <div className='flex flex-col gap-2'>
-            <label htmlFor="tableId" className='font-medium text-slate-800'>Số bàn (Nếu có)</label>
-            <input 
-              type="text" 
-              name="tableId" 
-              id="tableId" 
-              placeholder="Ví dụ: Bàn 12"
-              value={formData.tableId || ''}
-              onChange={handleChange}
-              className='border border-slate-300 rounded-lg p-3 outline-none focus:border-darkgrey'
-            />
+            {tableId ? (
+              <label htmlFor="tableId" className='font-medium text-slate-800'>Tên bàn: {table?.name}</label>
+            ) : (
+              <p className='text-slate-500 italic'>Vui lòng quyét mã QR tại bàn để tiếp tục</p>
+            )}
           </div>
 
           <div className='flex flex-col gap-2'>

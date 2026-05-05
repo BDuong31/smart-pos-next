@@ -37,7 +37,6 @@ const processQueue = (error: any, token: string | null = null) => {
 // Interceptor để thêm token vào header của mỗi request
 axiosInstance.interceptors.request.use((config) => {
     const token = store.getState().auth.accessToken;
-    console.log("Current token in request interceptor: ", token);
 
     if (token) {
         config.headers['Authorization'] = `Bearer ${token}`;
@@ -63,7 +62,6 @@ axiosInstance.interceptors.response.use(
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
                 }).then((token) => {
-                    console.log(token)
                     originalConfig.headers['Authorization'] = 'Bearer ' + token;
                     return axiosInstance(originalConfig);
                 })

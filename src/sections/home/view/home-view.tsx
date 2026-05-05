@@ -208,7 +208,7 @@ export default function HomeView() {
                     <Link className="bg-blue uppercase text-white py-3 px-6 text-[14px] rounded-lg" href={'/newdrops'}>Xem thêm</Link>
                 </div>
             </div>
-            <div className="py-12 m-auto 3xl:max-w-[1500px] 2xl:max-w-[1450px] xl:max-w-[90%] lg:max-w-[90%] max-w-[95%] max-h-[700px]">
+            <div className="py-12 m-auto 3xl:max-w-[1500px] 2xl:max-w-[1450px] xl:max-w-[90%] lg:max-w-[90%] max-w-[95%]">
                 <ProductListLaster products={latestProducts} variants={variants} length={4} />
             </div>
         </div>

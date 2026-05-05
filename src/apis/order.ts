@@ -4,11 +4,11 @@ import { axiosInstance, endpoints } from '@/utils/axios';
 
 export const createOrder = async (dto: IOrderCreate): Promise<string> => {
     const { data } = await axiosInstance.post(endpoints.order.createOrder, dto)
-    return data
+    return data.data
 }
 
 export const updateOrder = async (id: string, dto: IOrderUpdate) => {
-    const { data } = await axiosInstance.put(endpoints.order.updateOrder(id), dto)
+    const { data } = await axiosInstance.patch(endpoints.order.updateOrder(id), dto)
     return data
 }
 
@@ -34,7 +34,7 @@ export const getOrderIds= async (ids: string[]): Promise<IOrderDetail[]> => {
 
 export const createOrderItem = async (dto: IOrderItemCreate): Promise<string> => {
     const { data } = await axiosInstance.post(endpoints.orderItem.createOrderItem, dto)
-    return data
+    return data.data
 }
 
 export const updateOrderItem = async (id: string, dto: IOrderItemUpdate) => {

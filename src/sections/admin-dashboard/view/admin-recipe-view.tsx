@@ -1,24 +1,11 @@
 'use client'
 
 import React from "react"
-import {
-  getProducts,
-} from "@/apis/product"
-import {
-  getVariants,
-} from "@/apis/variant"
-import {
-  getOptionItems,
-} from "@/apis/option"
-import {
-  getRecipes,
-  createRecipe,
-  updateRecipe,
-  deleteRecipe
-} from "@/apis/recipe"
-import {
-  getIngredients
-} from "@/apis/ingredient"
+import { getProducts } from "@/apis/product"
+import { getVariants } from "@/apis/variant"
+import { getOptionItems } from "@/apis/option"
+import { getRecipes, createRecipe, updateRecipe, deleteRecipe } from "@/apis/recipe"
+import { getIngredients } from "@/apis/ingredient"
 
 import { useToast } from "@/context/toast-context"
 import { Plus, Trash2 } from "lucide-react"
@@ -31,62 +18,58 @@ const LIMIT = 10
 
 export default function RecipeView() {
   const { showToast } = useToast()
-
   const [mode, setMode] = React.useState<"product" | "option">("product")
 
-  // ================= DATA =================
+  // ================= DATA STATES =================
   const [products, setProducts] = React.useState<IProductDetails[]>([])
   const [variants, setVariants] = React.useState<IVariant[]>([])
   const [options, setOptions] = React.useState<IOptionItem[]>([])
   const [ingredients, setIngredients] = React.useState<IIngredientDetail[]>([])
+  const [displayRecipes, setDisplayRecipes] = React.useState<any[]>([])
 
-  // ================= TOTAL =================
+  // ================= PAGINATION STATES =================
   const [totalProduct, setTotalProduct] = React.useState(LIMIT)
   const [totalVariant, setTotalVariant] = React.useState(LIMIT)
   const [totalOption, setTotalOption] = React.useState(LIMIT)
   const [totalIngredient, setTotalIngredient] = React.useState(LIMIT)
 
-  // ================= PAGE =================
   const [productPage, setProductPage] = React.useState(1)
   const [variantPage, setVariantPage] = React.useState(1)
   const [optionPage, setOptionPage] = React.useState(1)
   const [ingredientPage, setIngredientPage] = React.useState(1)
 
-  // ================= SELECT =================
+  // ================= SELECTION STATES =================
   const [selectedProduct, setSelectedProduct] = React.useState<IProductDetails | null>(null)
   const [selectedVariant, setSelectedVariant] = React.useState<IVariant | null>(null)
   const [selectedOption, setSelectedOption] = React.useState<IOptionItem | null>(null)
 
-  // ================= RECIPE =================
-  const [recipeProducts, setRecipeProducts] = React.useState<any[]>([])
-  const [recipeVariants, setRecipeVariants] = React.useState<any[]>([])
-  const [recipeOptions, setRecipeOptions] = React.useState<any[]>([])
-
-  // ================= ADD =================
+  // ================= ADD MODAL STATES =================
   const [selectedIngredientId, setSelectedIngredientId] = React.useState("")
   const [amount, setAmount] = React.useState(0)
-
   const [deleteTarget, setDeleteTarget] = React.useState<any>(null)
 
-  // ================= HELPER =================
+  // ================= HELPERS =================
+  const canLoadMore = (page: number, total: number) => page <= Math.ceil(total / LIMIT)
 
-  const canLoadMore = (page: number, total: number) => {
-    return page <= Math.ceil(total / LIMIT)
+  // ================= API LOADERS =================
+  const loadRecipes = async (pId?: string, vId?: string, oId?: string) => {
+    try {
+      // Gọi API với cả productId và variantId đồng thời
+      const res = await getRecipes(undefined, undefined, pId, vId, oId, 1, 100)
+      setDisplayRecipes(res.data)
+    } catch (error) {
+      showToast("Không thể tải công thức", "error")
+    }
   }
-
-  // ================= LOAD =================
 
   const loadProducts = async (page = 1) => {
     if (!canLoadMore(page, totalProduct)) return
-
     const res = await getProducts({}, page, LIMIT)
     setProducts(prev => page === 1 ? res.data : [...prev, ...res.data])
     setTotalProduct(res.total)
   }
 
   const loadVariants = async (productId: string, page = 1) => {
-    if (!canLoadMore(page, totalVariant)) return []
-
     const res = await getVariants({ productId }, page, LIMIT)
     setVariants(prev => page === 1 ? res.data : [...prev, ...res.data])
     setTotalVariant(res.total)
@@ -95,15 +78,12 @@ export default function RecipeView() {
 
   const loadOptions = async (page = 1) => {
     if (!canLoadMore(page, totalOption)) return
-
     const res = await getOptionItems(undefined, undefined, undefined, page, LIMIT)
     setOptions(prev => page === 1 ? res.data : [...prev, ...res.data])
     setTotalOption(res.total)
   }
 
   const loadIngredients = async (page = 1) => {
-    if (!canLoadMore(page, totalIngredient)) return
-
     const res = await getIngredients(undefined, undefined, undefined, undefined, page, LIMIT)
     setIngredients(prev => page === 1 ? res.data : [...prev, ...res.data])
     setTotalIngredient(res.total)
@@ -112,173 +92,109 @@ export default function RecipeView() {
   React.useEffect(() => {
     if (mode === "product") loadProducts(1)
     else loadOptions(1)
+    setDisplayRecipes([])
   }, [mode])
 
-  // ================= SELECT =================
-
+  // ================= HANDLERS =================
   const handleProductSelect = async (p: any) => {
     setSelectedProduct(p)
-
     setVariantPage(1)
     setVariants([])
-    setTotalVariant(0)
-
+    
     const vs = await loadVariants(p.id, 1)
-
-    const base = await getRecipes(undefined, undefined, p.id, undefined, undefined, 1, 100)
-    setRecipeProducts(base.data)
-
     if (vs.length > 0) {
       setSelectedVariant(vs[0])
-      const vr = await getRecipes(undefined, undefined, undefined, vs[0].id, undefined, 1, 100)
-      setRecipeVariants(vr.data)
+      loadRecipes(p.id, vs[0].id)
+    } else {
+      setSelectedVariant(null)
+      loadRecipes(p.id)
     }
   }
 
   const handleVariantSelect = async (v: any) => {
     setSelectedVariant(v)
-    const res = await getRecipes(undefined, undefined, undefined, v.id, undefined, 1, 100)
-    setRecipeVariants(res.data)
+    loadRecipes(selectedProduct?.id, v.id)
   }
 
   const handleOptionSelect = async (o: any) => {
     setSelectedOption(o)
-    const res = await getRecipes(undefined, undefined, undefined, undefined, o.id, 1, 100)
-    setRecipeOptions(res.data)
-  }
-
-  // ================= MERGE =================
-
-  const merged = () => {
-    const map = new Map()
-
-    recipeProducts.forEach(r => {
-      map.set(r.ingredientId, {
-        ingredientName: r.ingredient?.name,
-        base: r,
-        variant: null
-      })
-    })
-
-    recipeVariants.forEach(r => {
-      const ex = map.get(r.ingredientId) || {}
-      map.set(r.ingredientId, {
-        ...ex,
-        variant: r
-      })
-    })
-
-    return Array.from(map.values())
-  }
-
-  // ================= ADD =================
-
-  const openAddModal = () => {
-    setIngredients([])
-    setIngredientPage(1)
-    setTotalIngredient(0)
-    loadIngredients(1)
-
-    ;(document.getElementById("add_modal") as HTMLDialogElement).showModal()
+    loadRecipes(undefined, undefined, o.id)
   }
 
   const handleAdd = async () => {
     try {
-      if (mode === "product" && selectedProduct) {
-        await createRecipe({
-          ingredientId: selectedIngredientId,
-          productId: selectedProduct.id,
-          amount
-        })
-
-        await Promise.all(
-          variants.map(v =>
-            createRecipe({
-              ingredientId: selectedIngredientId,
-              variantId: v.id,
-              amount: 0
-            })
-          )
-        )
-
-        handleProductSelect(selectedProduct)
+      const payload: any = { ingredientId: selectedIngredientId, amount }
+      
+      if (mode === "product") {
+        if (!selectedProduct) return
+        payload.productId = selectedProduct.id
+        payload.variantId = selectedVariant?.id
+      } else {
+        if (!selectedOption) return
+        payload.optionItemId = selectedOption.id
       }
 
-      if (mode === "option" && selectedOption) {
-        await createRecipe({
-          ingredientId: selectedIngredientId,
-          optionItemId: selectedOption.id,
-          amount
-        })
+      await createRecipe(payload)
+      showToast("Thêm thành công", "success")
+      
+      // Refresh data
+      if (mode === "product") loadRecipes(selectedProduct?.id, selectedVariant?.id)
+      else loadRecipes(undefined, undefined, selectedOption?.id)
 
-        handleOptionSelect(selectedOption)
-      }
-
-      showToast("Add success", "success")
       ;(document.getElementById("add_modal") as HTMLDialogElement).close()
-
     } catch {
-      showToast("Add failed", "error")
+      showToast("Thêm thất bại", "error")
     }
   }
 
-  // ================= UPDATE =================
-
-  const handleUpdate = async (recipe: any, amount: number) => {
+  const handleUpdate = async (recipe: any, newAmount: number) => {
     if (!recipe?.id) return
-    await updateRecipe(recipe.id, { amount })
+    try {
+      await updateRecipe(recipe.id, { amount: newAmount })
+      showToast("Đã cập nhật", "success")
+    } catch {
+      showToast("Cập nhật thất bại", "error")
+    }
   }
-
-  // ================= DELETE =================
 
   const handleDelete = async () => {
-    if (!deleteTarget) return
-
-    if (mode === "product") {
-      if (deleteTarget.base) await deleteRecipe(deleteTarget.base.id)
-      if (deleteTarget.variant) await deleteRecipe(deleteTarget.variant.id)
-      handleProductSelect(selectedProduct)
+    if (!deleteTarget?.id) return
+    try {
+      await deleteRecipe(deleteTarget.id)
+      showToast("Đã xóa", "success")
+      
+      if (mode === "product") loadRecipes(selectedProduct?.id, selectedVariant?.id)
+      else loadRecipes(undefined, undefined, selectedOption?.id)
+      
+      setDeleteTarget(null)
+      ;(document.getElementById("delete_modal") as HTMLDialogElement).close()
+    } catch {
+      showToast("Xóa thất bại", "error")
     }
-
-    if (mode === "option") {
-      await deleteRecipe(deleteTarget.base.id)
-      handleOptionSelect(selectedOption)
-    }
-
-    showToast("Deleted", "success")
-    ;(document.getElementById("delete_modal") as HTMLDialogElement).close()
   }
 
-  // ================= SCROLL =================
-
-  const useScroll = (ref: any, callback: () => void) => {
+  // ================= COMPONENTS =================
+  function List({ items, onSelect, selected, onLoadMore }: any) {
+    const ref = React.useRef<HTMLDivElement>(null)
+    
     React.useEffect(() => {
       const el = ref.current
       if (!el) return
-
       const handle = () => {
-        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
-          callback()
-        }
+        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) onLoadMore()
       }
-
       el.addEventListener("scroll", handle)
       return () => el.removeEventListener("scroll", handle)
-    }, [callback])
-  }
-
-  function List({ items, onSelect, selected, onLoadMore }: any) {
-    const ref = React.useRef(null)
-    useScroll(ref, onLoadMore)
+    }, [onLoadMore])
 
     return (
-      <div ref={ref} className="card bg-white shadow p-3 h-[400px] overflow-auto">
-        {items.map((i:any)=>(
+      <div ref={ref} className="card bg-white shadow p-3 h-[500px] overflow-auto border border-base-200">
+        {items.map((i: any) => (
           <div
             key={i.id}
-            onClick={()=>onSelect(i)}
-            className={`p-2 border rounded mb-2 cursor-pointer 
-            ${selected?.id === i.id ? "bg-darkgrey text-white" : "hover:bg-gray-100"}`}
+            onClick={() => onSelect(i)}
+            className={`p-3 border rounded mb-2 cursor-pointer transition-colors
+            ${selected?.id === i.id ? "bg-neutral text-white border-neutral" : "hover:bg-base-200"}`}
           >
             {i.name}
           </div>
@@ -289,191 +205,162 @@ export default function RecipeView() {
 
   return (
     <div className="p-6 space-y-6">
-
-      {/* HEADER */}
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center">
         <div>
-            <h1 className="text-3xl font-bold">Quản lý công thức</h1>
-            <p className="text-base-content/70 text-sm">Trang chủ &gt; Công thức</p>
+          <h1 className="text-3xl font-bold">Quản lý công thức</h1>
+          <p className="text-base-content/70 text-sm">Trang chủ &gt; Công thức</p>
         </div>
-        <div className="flex gap-8 items-center">
-            <div className="flex gap-4">
-                <button className={`${mode==="product"?"bg-darkgrey text-white px-2 btn":"btn"}`} onClick={()=>setMode("product")}>Món ăn</button>
-                <button className={`${mode==="option"?"bg-darkgrey text-white px-2 btn":"btn"}`} onClick={()=>setMode("option")}>Tuỳ chọn</button>
-            </div>
-            <button className="btn bg-darkgrey text-white px-2" onClick={openAddModal}>
-                <Plus size={16}/> Thêm công thức
-            </button>
+        <div className="flex gap-4">
+          <div className="join border border-base-300">
+            <button className={`join-item btn btn-sm ${mode === "product" ? "btn-neutral" : ""}`} onClick={() => setMode("product")}>Món ăn</button>
+            <button className={`join-item btn btn-sm ${mode === "option" ? "btn-neutral" : ""}`} onClick={() => setMode("option")}>Tuỳ chọn</button>
+          </div>
+          <button className="btn btn-sm btn-neutral" onClick={() => {
+            setIngredients([]); setIngredientPage(1); loadIngredients(1);
+            (document.getElementById("add_modal") as HTMLDialogElement).showModal();
+          }}>
+            <Plus size={16} /> Thêm công thức
+          </button>
         </div>
       </div>
 
-      {mode==="product" && (
-        <div className="grid grid-cols-4 gap-4">
-          <List items={products} selected={selectedProduct} onSelect={handleProductSelect}
-            onLoadMore={()=>{
-              const next = productPage + 1
-              setProductPage(next)
-              loadProducts(next)
-            }} />
+      <div className="grid grid-cols-12 gap-4">
+        {mode === "product" ? (
+          <>
+            <div className="col-span-3">
+              <p className="font-semibold mb-2 ml-1">Sản phẩm</p>
+              <List items={products} selected={selectedProduct} onSelect={handleProductSelect}
+                onLoadMore={() => { setProductPage(p => p + 1); loadProducts(productPage + 1) }} />
+            </div>
+            <div className="col-span-3">
+              <p className="font-semibold mb-2 ml-1">Biến thể</p>
+              <List items={variants} selected={selectedVariant} onSelect={handleVariantSelect}
+                onLoadMore={() => { if (selectedProduct) { setVariantPage(v => v + 1); loadVariants(selectedProduct.id, variantPage + 1) } }} />
+            </div>
+          </>
+        ) : (
+          <div className="col-span-4">
+            <p className="font-semibold mb-2 ml-1">Tùy chọn (Options)</p>
+            <List items={options} selected={selectedOption} onSelect={handleOptionSelect}
+              onLoadMore={() => { setOptionPage(o => o + 1); loadOptions(optionPage + 1) }} />
+          </div>
+        )}
 
-          <List items={variants} selected={selectedVariant} onSelect={handleVariantSelect}
-            onLoadMore={()=>{
-              if(selectedProduct){
-                const next = variantPage + 1
-                setVariantPage(next)
-                loadVariants(selectedProduct.id, next)
-              }
-            }} />
-
-          <Table rows={merged()} onUpdate={handleUpdate} onDelete={(r:any)=>setDeleteTarget(r)} mode="product"/>
+        <div className={mode === "product" ? "col-span-6" : "col-span-8"}>
+          <p className="font-semibold mb-2 ml-1">Nguyên liệu thành phần</p>
+          <div className="card bg-white shadow p-4 h-[500px] overflow-auto border border-base-200">
+            <table className="table table-zebra w-full">
+              <thead className="sticky top-0 bg-white z-10">
+                <tr>
+                  <th>Nguyên Liệu</th>
+                  <th className="w-32 text-center">Định lượng</th>
+                  <th className="w-20 text-center">Xóa</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayRecipes.map((r: any) => (
+                  <tr key={r.id}>
+                    <td className="font-medium">{r.ingredient?.name}</td>
+                    <td>
+                      <input
+                        type="number"
+                        defaultValue={r.amount}
+                        onBlur={(e) => handleUpdate(r, Number(e.target.value))}
+                        className="input input-sm input-bordered w-full text-center"
+                      />
+                    </td>
+                    <td className="text-center">
+                      <button onClick={() => { setDeleteTarget(r); (document.getElementById("delete_modal") as HTMLDialogElement).showModal() }} className="btn btn-ghost btn-xs text-error">
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {displayRecipes.length === 0 && (
+                  <tr><td colSpan={3} className="text-center py-10 text-base-content/50">Chưa có dữ liệu công thức</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      )}
+      </div>
 
-      {/* OPTION */}
-      {mode==="option" && (
-        <div className="grid grid-cols-2 gap-4">
-          <List items={options} selected={selectedOption} onSelect={handleOptionSelect}
-            onLoadMore={()=>{
-              const next = optionPage + 1
-              setOptionPage(next)
-              loadOptions(next)
-            }} />
-
-          <Table rows={recipeOptions.map(r=>({ingredientId:r.ingredientId,ingredientName:r.ingredient?.name,base:r}))}
-            onUpdate={handleUpdate}
-            onDelete={(r:any)=>setDeleteTarget(r)} mode="option"/>
-        </div>
-      )}
-
-      {/* ADD MODAL */}
+      {/* MODALS */}
       <dialog id="add_modal" className="modal">
-        <div className="modal-box">
-          <h3 className="font-bold mb-2">Thêm Công Thức</h3>
-
-          <IngredientDropdown
-            value={selectedIngredientId}
-            onChange={setSelectedIngredientId}
-            items={ingredients}
-            loadMore={()=>{
-              const next = ingredientPage + 1
-              setIngredientPage(next)
-              loadIngredients(next)
-            }}
-          />
-
-          <input type="number" className="input input-bordered w-full mt-2"
-            onChange={(e)=>setAmount(Number(e.target.value))}/>
-
+        <div className="modal-box max-w-sm">
+          <h3 className="font-bold text-lg mb-4">Thêm nguyên liệu vào công thức</h3>
+          <div className="space-y-4">
+            <div className="form-control">
+              <label className="label text-xs font-bold uppercase">Nguyên liệu</label>
+              <IngredientDropdown
+                value={selectedIngredientId}
+                onChange={setSelectedIngredientId}
+                items={ingredients}
+                loadMore={() => { setIngredientPage(p => p + 1); loadIngredients(ingredientPage + 1) }}
+              />
+            </div>
+            <div className="form-control">
+              <label className="label text-xs font-bold uppercase">Định lượng</label>
+              <input type="number" placeholder="Nhập số lượng..." className="input input-bordered w-full"
+                onChange={(e) => setAmount(Number(e.target.value))} />
+            </div>
+          </div>
           <div className="modal-action">
-            <form method="dialog"><button className="btn">Hủy</button></form>
-            <button className="btn bg-darkgrey text-white px-2" onClick={handleAdd}>Lưu</button>
+            <form method="dialog"><button className="btn btn-ghost">Hủy</button></form>
+            <button className="btn btn-neutral" onClick={handleAdd} disabled={!selectedIngredientId}>Lưu lại</button>
           </div>
         </div>
       </dialog>
 
+      <dialog id="delete_modal" className="modal">
+        <div className="modal-box max-w-xs">
+          <h3 className="font-bold text-lg">Xác nhận xóa</h3>
+          <p className="py-4">Bạn có chắc chắn muốn xóa nguyên liệu này khỏi công thức?</p>
+          <div className="modal-action">
+            <form method="dialog"><button className="btn btn-ghost">Hủy</button></form>
+            <button className="btn btn-error text-white" onClick={handleDelete}>Xác nhận</button>
+          </div>
+        </div>
+      </dialog>
     </div>
   )
 }
 
-// ================= DROPDOWN =================
-
 function IngredientDropdown({ value, onChange, items, loadMore }: any) {
   const [open, setOpen] = React.useState(false)
-  const ref = React.useRef<any>(null)
-  const scrollRef = React.useRef<any>(null)
+  const ref = React.useRef<HTMLDivElement>(null)
+  const scrollRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
-    const handle = (e:any)=>{
-      if(!ref.current?.contains(e.target)) setOpen(false)
-    }
-    document.addEventListener("click", handle)
-    return ()=>document.removeEventListener("click", handle)
+    const handle = (e: any) => { if (!ref.current?.contains(e.target)) setOpen(false) }
+    document.addEventListener("mousedown", handle)
+    return () => document.removeEventListener("mousedown", handle)
   }, [])
 
-  React.useEffect(() => {
+  const onScroll = () => {
     const el = scrollRef.current
-    if (!el) return
+    if (el && el.scrollTop + el.clientHeight >= el.scrollHeight - 5) loadMore()
+  }
 
-    const onScroll = () => {
-      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
-        loadMore()
-      }
-    }
-
-    el.addEventListener("scroll", onScroll)
-    return () => el.removeEventListener("scroll", onScroll)
-  }, [loadMore])
-
-  const selected = items.find((i:any)=>i.id===value)
+  const selected = items.find((i: any) => i.id === value)
 
   return (
-    <div ref={ref} className="relative">
-      <div onClick={()=>setOpen(!open)}
-        className="input input-bordered cursor-pointer">
-        {selected?.name || "Chọn nguyên liệu"}
+    <div ref={ref} className="relative w-full">
+      <div onClick={() => setOpen(!open)} className="input input-bordered flex items-center justify-between cursor-pointer">
+        <span className={selected ? "text-base-content" : "text-base-content/50"}>{selected?.name || "Chọn nguyên liệu..."}</span>
+        <span className="text-xs">▼</span>
       </div>
-
       {open && (
-        <div ref={scrollRef}
-          className="absolute bg-white border w-full max-h-48 overflow-auto mt-1 rounded shadow z-50">
-          {items.map((i:any)=>(
-            <div key={i.id}
-              onClick={()=>{onChange(i.id);setOpen(false)}}
-              className={`p-2 cursor-pointer hover:bg-gray-100 
-              ${value===i.id?"bg-primary text-white":""}`}>
-              {i.name}
+        <div ref={scrollRef} onScroll={onScroll} className="absolute bg-white border border-base-300 w-full max-h-60 overflow-auto mt-1 rounded-lg shadow-xl z-[100]">
+          {items.map((i: any) => (
+            <div key={i.id} onClick={() => { onChange(i.id); setOpen(false) }}
+              className={`p-3 cursor-pointer hover:bg-neutral hover:text-white transition-colors border-b border-base-100 last:border-0
+              ${value === i.id ? "bg-neutral text-white" : ""}`}>
+              {i.name} <span className="text-xs opacity-60">({i.unit})</span>
             </div>
           ))}
         </div>
       )}
-    </div>
-  )
-}
-
-// ================= TABLE =================
-
-function Table({ rows, onUpdate, onDelete, mode }: any) {
-  return (
-    <div className={`card bg-white shadow p-4 ${mode==="product"?"col-span-2":""} h-[400px] overflow-auto`}>
-      <table className="table table-zebra h-[400px]">
-        <thead>
-          <tr>
-            <th>Nguyên Liệu</th>
-            <th>Cơ Sở</th>
-            {mode==="product" && <th>Biến Thể</th>}
-            <th>Hành Động</th>
-          </tr>
-        </thead>
-        <tbody className="">
-          {rows.map((r:any)=>(
-            <tr key={r.ingredientId}>
-              <td>{r.ingredientName}</td>
-
-              <td>
-                <input defaultValue={r.base?.amount}
-                  onBlur={(e)=>onUpdate(r.base, Number(e.target.value))}
-                  className="input input-sm w-20"/>
-              </td>
-
-              {mode==="product" && (
-                <td>
-                  {r.variant && (
-                    <input defaultValue={r.variant.amount}
-                      onBlur={(e)=>onUpdate(r.variant, Number(e.target.value))}
-                      className="input input-sm w-20"/>
-                  )}
-                </td>
-              )}
-
-              <td>
-                <button onClick={()=>onDelete(r)} className="text-error">
-                  <Trash2 size={14}/>
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   )
 }

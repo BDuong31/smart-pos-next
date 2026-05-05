@@ -29,6 +29,8 @@ import { IOrderCreate, IOrderItemCreate, IOrderItemOptionCreate, IOrderVoucherCr
 import { IPaymentCreate } from "@/interfaces/payment";
 import { ICartItemDetail, ICartItemOptionDetail } from "@/interfaces/cart";
 import { IVariant } from "@/interfaces/variant";
+import { ITableDetail } from "@/interfaces/table";
+import { getTableById } from "@/apis/table";
 
 // Form data tại quán (có thể nhập Table ID)
 type CheckoutFormData = {
@@ -47,8 +49,6 @@ export default function CheckoutView() {
     const [cartItem, setCartItem] = useState<ICartItemDetail[]>([]);
     const [variantMap, setVariantMap] = useState<Record<string, IVariant>>({});
     const [optionMap, setOptionMap] = useState<Record<string, ICartItemOptionDetail[]>>({});
-    
-    
     const [cartTotal, setCartTotal] = useState(0);
     const [voucherDiscount, setVoucherDiscount] = useState<number>(0);
     const [totalAfterDiscount, setTotalAfterDiscount] = useState<number>(0);
@@ -135,10 +135,11 @@ export default function CheckoutView() {
             const variant = variantMap[item.variantId];
             if (!variant) return acc;
 
-            const basePrice = variant.priceDiff || item.product?.basePrice || 0;
+            const basePrice = item.product?.basePrice || 0;
+            const variantPrice = variant?.priceDiff;
             const optionsPrice = optionMap[item.id]?.reduce((optAcc, opt) => optAcc + (opt.optionItem?.priceExtra || 0), 0) || 0;
 
-            return acc + ((basePrice + optionsPrice) * item.quantity);
+            return acc + ((basePrice + variantPrice + optionsPrice) * item.quantity);
         }, 0);
 
         setCartTotal(total);
@@ -204,7 +205,7 @@ export default function CheckoutView() {
 
                 // Tạo Món
                 const orderItemData: IOrderItemCreate = {
-                    orderId: createdOrderId.data,
+                    orderId: createdOrderId,
                     productId: item.productId,
                     variantId: item.variantId,
                     quantity: item.quantity,
@@ -216,7 +217,7 @@ export default function CheckoutView() {
                 const itemOptions = optionMap[item.id] || [];
                 for (const opt of itemOptions) {
                     const optionData: IOrderItemOptionCreate = {
-                        orderItemId: createdOrderItemId.data,
+                        orderItemId: createdOrderItemId,
                         optionItemId: opt.optionItemId,
                         optionName: opt.optionItem?.name,
                         price: opt.optionItem?.priceExtra || 0,
@@ -241,26 +242,15 @@ export default function CheckoutView() {
             // Bước 4: Lưu thông tin Bàn (Nếu nhập Table ID)
             if (data.tableId) {
                 const tableData: IOrderTableCreate = {
-                    orderId: createdOrderId.data,
+                    orderId: createdOrderId,
                     tableId: data.tableId
                 }
                 await createOrderTable(tableData);
             }
 
-            // Bước 5: Tạo phiên Thanh toán (Payment)
-            const PaymentData: IPaymentCreate = {
-                    orderId: createdOrderId.data,
-                    externalTransactionId: null,
-                    amount: totalAfterDiscount,
-                    method: 'cash', 
-                    gatewayResponse: null,
-                    paidAt: null,
-            }
-            const paymentRes = await createPayment(PaymentData);
-            console.log(paymentRes);
             showToast("Tạo đơn hàng thành công!", "success");
             // Điều hướng tới trang kết quả / thanh toán
-            router.push(`/payment/${paymentRes.id}`);
+            router.push(`/payment/${createdOrderId}`);
 
         } catch (error) {
             console.error("Checkout process failed:", error);
@@ -277,7 +267,6 @@ export default function CheckoutView() {
     return (
         <div className="m-auto 3xl:max-w-[1500px] 2xl:max-w-[1450px] xl:max-w-[90%] lg:max-w-[90%] max-w-[95%] py-10">
             <div className="h-auto lg:grid grid-cols-2 gap-10">
-                
                 <div className='h-fit mt-8 lg:mt-0'>
                     <CheckoutForm onSubmit={handleSubmit} />
                 </div>

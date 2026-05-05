@@ -7,7 +7,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { IPayment } from "@/interfaces/payment";
 import { IOrder } from "@/interfaces/order";
-import { getPaymentById, initiatePayment } from "@/apis/payment";
+import { createPayment, getPaymentById, initiatePayment, updatePayment } from "@/apis/payment";
 import { useToast } from "@/context/toast-context";
 import SplashScreen from "@/components/loading/splash-sceen";
 import { getOrderId } from "@/apis/order";
@@ -59,22 +59,22 @@ export default function PaymentView({ id }: PaymentViewProps) {
         setSelectedMethod(event.target.value as PaymentMethodId);
     };
 
-    const fetchePayment = async (paymentId: string) => {
-        setLoading(true);
-        try {
-            const response = await getPaymentById(paymentId)
-            console.log(response.data);
-            if (response) {
-                setPayment(response.data);
-            } else {
-                console.error('Error fetching payment:', response);
-            }
-        } catch (error) {
-            console.error('Error fetching payment:', error);
-        } finally {
-            setLoading(false);
-        }
-    }
+    // const fetchePayment = async (paymentId: string) => {
+    //     setLoading(true);
+    //     try {
+    //         const response = await getPaymentById(paymentId)
+    //         console.log(response.data);
+    //         if (response) {
+    //             setPayment(response.data);
+    //         } else {
+    //             console.error('Error fetching payment:', response);
+    //         }
+    //     } catch (error) {
+    //         console.error('Error fetching payment:', error);
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // }
 
     const fetcheOrder = async (orderId: string) => {
         setLoading(true);
@@ -92,14 +92,8 @@ export default function PaymentView({ id }: PaymentViewProps) {
 
 
     React.useEffect(() => {
-        fetchePayment(id);
+        fetcheOrder(id);
     }, [id]);
-
-    React.useEffect(() => {
-        if (payment?.orderId) {
-            fetcheOrder(payment.orderId);
-        }
-    }, [payment]);
 
     React.useEffect(() => {
         if (payment?.method) {
@@ -114,16 +108,31 @@ export default function PaymentView({ id }: PaymentViewProps) {
         setLoading(true);
         setError(null);
         try {
-            const response = await initiatePayment({
-                paymentId: id,
+            const paymentData = {
+                orderId: order?.id || id,
+                externalTransactionId: null,
+                amount: order?.totalAmount || 0,
                 method: selectedMethod,
-                methodChild: selectedMethodChild === '' ? '' : selectedMethodChild,
-            })
+                gatewayResponse: null,
+                paidAt: null,
+            };
+
+            const newPaymentResponse = await createPayment(paymentData);
+            const newPaymentId = newPaymentResponse.id;
 
             if (selectedMethod === 'cash') {
+                const response = await updatePayment(newPaymentId, {
+                    status: 'success',
+                    method: 'cash',
+                })
                 showToast('Thanh toán thành công! Đơn hàng của bạn đang được xử lý.', 'success');
-                router.push(`/order-result/${id}?resultCode=-1`);
+                router.push(`/order-result/${newPaymentId}?resultCode=-1`);
             } else {
+                const response = await initiatePayment({
+                    paymentId: newPaymentId,
+                    method: selectedMethod,
+                    methodChild: selectedMethodChild,
+                });
                 if (response.success && response.paymentUrl) {
                     router.push(response.paymentUrl);
                 } else {
@@ -149,11 +158,11 @@ export default function PaymentView({ id }: PaymentViewProps) {
             <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-8">
                 <h1 className="text-lg font-bold tracking-widest mb-4">
-                    {payment ? `Thanh toán đơn hàng #${order?.code}` : 'Payment Details'}
+                    {order ? `Thanh toán đơn hàng #${order?.code}` : 'Payment Details'}
                 </h1>
                 <p className="text-sm font-bold text-graymain">TỔNG TIỀN THANH TOÁN</p>
                 <p className="text-5xl font-bold text-blue mt-2">
-                    ${payment ? payment.amount.toFixed(2) : '0.00'}
+                    ${order ? order.totalAmount.toFixed(2) : '0.00'}
                 </p>
                 </div>
                 <div className="border border-gray-400 rounded-lg p-5 grid grid-cols-1 md:grid-cols-2 md:gap-8">

@@ -22,9 +22,9 @@ export const getTables = async (dto: TableQuery, page: number, limit: number): P
     return data;
 }
 
-export const getTableById = async (id: string): Promise<ITableDetail> => {
+export const getTableById = async (id: string): Promise<IApiResponse<ITableDetail>> => {
     const { data } = await axiosInstance.get(endpoints.table.getTableId(id));
-    return data.data;
+    return data;
 }
 
 export const getListTableIds = async (ids: string[]): Promise<ITable[]> => {

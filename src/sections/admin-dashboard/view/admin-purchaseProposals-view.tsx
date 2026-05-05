@@ -6,6 +6,7 @@ import {
   Clock, XCircle, Bot, X, PackagePlus, ClipboardCheck, PlusCircle
 } from "lucide-react";
 import { GrFormPrevious, GrFormNext } from "react-icons/gr";
+import UserRegula from "@/components/icons/user";
 
 // ==========================================
 // 1. MOCK DATA
@@ -20,15 +21,15 @@ const mockIngredients = [
 
 const mockProposals = [
   { 
-    id: "1", code: "PO-20260331-001", creatorId: "AI_GENERATED_019cc1cb-97b4", creatorName: "Hệ thống AI Prophet", 
-    status: "PENDING", note: "AI tự động đề xuất nhập do cảnh báo thiếu hụt sữa tươi.", createdAt: "2026-03-31T08:00:00",
+    id: "1", code: "PO-20260331-001", creatorId: "AI_GENERATED_019cc1cb-97b4", creatorName: "Hệ thống AI", 
+    status: "PENDING", note: "AI tự động đề xuất nhập do sắp hết nguyên liệu.", createdAt: "2026-03-31T08:00:00",
     details: [
       { id: "d1", ingredientId: "ing-2", name: "Sữa tươi thanh trùng", quantity: 15, unit: "lít" },
       { id: "d2", ingredientId: "ing-3", name: "Trân châu đen", quantity: 5, unit: "kg" }
     ]
   },
   { 
-    id: "2", code: "PO-20260330-002", creatorId: "user-uuid-1234", creatorName: "Vũ Thái", 
+    id: "2", code: "PO-20260330-002", creatorId: "user-uuid-1234", creatorName: "Vũ Thái Bình Dương", 
     status: "APPROVED", note: "Nhập nguyên liệu định kỳ tuần 1 tháng 4.", createdAt: "2026-03-30T10:30:00",
     details: [{ id: "d3", ingredientId: "ing-1", name: "Cà phê hạt Robusta", quantity: 20, unit: "kg" }]
   }
@@ -210,7 +211,7 @@ export default function PurchaseProposalView() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        {isAI ? <div className="p-1.5 bg-purple-100 text-purple-600 rounded-lg"><Bot size={16} /></div> : <div className="avatar placeholder"><div className="bg-slate-200 text-slate-600 rounded-lg w-7 h-7"><span className="text-xs font-bold">{item.creatorName.charAt(0)}</span></div></div>}
+                        {isAI ? <div className="p-1.5 bg-purple-100 text-purple-600 rounded-lg"><Bot size={16} /></div> : <div className="p-1.5 text-darkgrey stroke-darkgrey rounded-lg"><UserRegula width={20} height={20}/></div>}
                         <div><span className={`font-semibold ${isAI ? 'text-purple-700' : 'text-slate-700'}`}>{item.creatorName}</span></div>
                       </div>
                     </td>

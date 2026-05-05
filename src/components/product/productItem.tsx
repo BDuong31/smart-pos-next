@@ -42,11 +42,11 @@ const ProductItem = ( { product, variants, images }: ProductItemProps) => {
         <Link href={`/menu/${product.id}`} className='flex flex-col items-center'>
             <div className='rounded-3xl relative'>
                 {loading ? (
-                    <div className='w-[302px] h-[334px] flex items-center justify-center'>
+                    <div className='lg:w-[302px] lg:h-[334px] w-[151px] h-[167px] flex items-center justify-center'>
                         <SplashScreen />
                     </div>
                 ) : (
-                    <Image src={imageUrl} width={302} height={334} alt={product.name} className='object-fill rounded-3xl outline outline-[#FFF] outline-[6px] w-[302px] h-[334px]'/>
+                    <Image src={imageUrl} width={302} height={334} alt={product.name} className='object-fill rounded-3xl outline outline-[#FFF] outline-[6px] lg:w-[302px] lg:h-[334px] w-[151px] h-[167px]'/>
                 )}
             { loading ? null : isSoldOut ? (
                 <div className='absolute top-0 left-0 w-[302px] h-[334px] bg-black bg-opacity-50 rounded-3xl flex items-center justify-center'>
@@ -70,7 +70,6 @@ const ProductItem = ( { product, variants, images }: ProductItemProps) => {
                 <h1 className='2xl:text-[16px] font-bold line-clamp-1 leading-6'>{product.name}</h1>
             </div>
             <button className='uppercase bg-darkgrey py-3 text-[14px] w-full text-center rounded-[8px]'>
-                <span className='text-white'>view product - </span>
                 <span className='text-yellow'>${product.basePrice}</span>
             </button>
         </Link>

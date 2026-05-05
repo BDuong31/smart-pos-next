@@ -1,4 +1,3 @@
-'use client';
 import type { Metadata } from 'next';
 import React from 'react';
 
@@ -22,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="block relative bg-gray h-full w-full" suppressHydrationWarning={true}>
+      <body className="block relative bg-gray h-full w-full" suppressHydrationWarning>
           <AppProviders>
             {children}
           </AppProviders>

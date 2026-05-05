@@ -7,7 +7,7 @@ import { ErrorCircleBold } from "@/components/icons/error-circle";
 import { BagRemoveBold } from "@/components/icons/bag-remove";
 import { BagCheckBold } from "@/components/icons/bag-check";
 import SplashScreen from "@/components/loading/splash-sceen";
-import { getPaymentById } from "@/apis/payment";
+import { getPaymentById, queryStatus, updatePayment, verifyPayment } from "@/apis/payment";
 import { getOrderId } from "@/apis/order";
 import { IOrder } from "@/interfaces/order";
 import { IPayment } from "@/interfaces/payment";
@@ -37,7 +37,20 @@ export default function PaymentResultView({ id }: PaymentResultViewProps) {
             const payRes = await getPaymentById(id);
             if (payRes?.data) {
                 setPayment(payRes.data);
-                
+                let status;
+                if (payRes.data.method !== 'cash') {
+                    const res = await queryStatus(payRes.data.method, externalId as string); 
+                    status = res;
+                } else {
+                    status = payRes.data.status;
+                }
+                if (status === 'failed') {
+                    const res = await updatePayment(payRes.data.id, { status: 'failed', externalTransactionId: externalId as string });
+                } else if (status === 'success') {
+                    const res = await updatePayment(payRes.data.id, { status: 'success', externalTransactionId: externalId as string });
+                } else {
+                    const res = await updatePayment(payRes.data.id, { status: 'pending', externalTransactionId: externalId as string });
+                }
                 // Nếu chưa có thông tin Order thì fetch luôn
                 if (!order) {
                     const orderRes = await getOrderId(payRes.data.orderId);
@@ -52,11 +65,8 @@ export default function PaymentResultView({ id }: PaymentResultViewProps) {
     };
 
     useEffect(() => {
-        // Lần đầu tiên load trang
         fetchData();
 
-        // Cơ chế Polling: Nếu trạng thái vẫn là 'pending', 
-        // thử fetch lại sau mỗi 3 giây (tối đa 5 lần) để đợi IPN xử lý xong
         let retryCount = 0;
         const interval = setInterval(() => {
             if (payment?.status === 'pending' && retryCount < 5) {
@@ -88,7 +98,7 @@ export default function PaymentResultView({ id }: PaymentResultViewProps) {
                         </div>
                         <h2 className="text-3xl font-semibold text-gray-900 p-5">Giao dịch không thành công</h2>
                         <p className="text-graymain p-5">
-                            Yêu cầu thanh toán cho đơn hàng <span className="font-bold text-gray-900">#{order?.id || '...'}</span> đã bị từ chối hoặc hủy bỏ.
+                            Yêu cầu thanh toán cho đơn hàng <span className="font-bold text-gray-900">#{order?.code || '...'}</span> đã bị từ chối hoặc hủy bỏ.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 w-full p-5">
                             <Link className="w-full py-3 px-6 rounded-lg border border-graymain font-semibold text-center" href="/">VỀ TRANG CHỦ</Link>
@@ -133,8 +143,8 @@ export default function PaymentResultView({ id }: PaymentResultViewProps) {
                     </div>
                     <h2 className="text-3xl font-semibold text-gray-900 p-5">Thanh toán thành công!</h2>
                     <p className="text-graymain p-5">
-                        Chúc mừng! Đơn hàng <span className="font-bold text-gray-900">#{order?.id}</span> đã được thanh toán hoàn tất.
-                        <br /> Mã giao dịch: <span className="font-mono text-blue-600 font-bold">{externalId}</span>
+                        Chúc mừng! Đơn hàng <span className="font-bold text-gray-900">#{order?.code}</span> đã được thanh toán hoàn tất.
+                        {payment?.method !== 'cash' ? <> <br /> Mã giao dịch: <span className="font-mono text-blue-600 font-bold">{externalId}</span></> : <></>}
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 w-full p-5">
                         <Link className="w-full py-3 px-6 rounded-lg border border-graymain font-semibold text-center" href="/">TIẾP TỤC MUA SẮM</Link>

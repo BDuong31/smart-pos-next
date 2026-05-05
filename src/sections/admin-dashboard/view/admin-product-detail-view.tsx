@@ -419,7 +419,7 @@ export default function ProductEditPage({ id }: ProductEditPageProps) {
               <div className="space-y-6">
                 {variants.map((variant, index) => (
                   <div key={variant.id} className="p-4 border rounded-lg relative">
-                    <button className="btn btn-error btn-xs btn-circle absolute -top-3 -right-3" onClick={() => removeVariant(index)} disabled={isUpdating}><X size={14} /></button>
+                    <button className="btn bg-error btn-xs btn-circle absolute -top-3 -right-3" onClick={() => removeVariant(index)} disabled={isUpdating}><X size={14} /></button>
                     <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
                       <div className="form-control"><label className="label"><span className="label-text">Tên biến thể</span></label><input type="text" name="name" placeholder="e.g., Size M"  value={variant.name || ''} onChange={(e) => handleVariantChange(index, e)} className="input input-bordered input-sm" /></div>
                       <div className="form-control"><label className="label"><span className="label-text">Giá chênh lệch</span></label><input type="text" name="priceDiff" placeholder="e.g., 10000" value={variant.priceDiff || ''} onChange={(e) => handleVariantChange(index, e)} className="input input-bordered input-sm" /></div>

@@ -6,6 +6,7 @@ import Footer from '@/components/footer';
 import { fetchCartByUserId } from '@/store/slices/cartSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { getMe } from '@/store/slices/userSlice';
+import { SocketProvider } from '@/context/socket-context';
 
 export default function RootLayout({
   children,
@@ -31,7 +32,9 @@ export default function RootLayout({
   return (
         <div className='pt-8'>
             <Header />
+            <SocketProvider>
             {children}
+            </SocketProvider>
             <Footer />
         </div>
   );

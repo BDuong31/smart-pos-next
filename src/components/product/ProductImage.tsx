@@ -1,8 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { IImage } from '@/interfaces/image';
-import ChevronBack from '../icons/chevron-back';
-import { ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { IoExit } from 'react-icons/io5';
 
 
@@ -137,7 +136,7 @@ const ProductImage = ({ images }: ProductImageProps) => {
                             className="absolute left-0 z-[60] p-2 text-white bg-white bg-opacity-20 rounded-full top-1/2 -translate-y-1/2 ml-5 hover:bg-opacity-40"
                             onClick={() => handleNavigation('prev')}
                         >
-                            <ChevronBack />
+                            <ChevronLeft />
                         </button>
 
                         <button

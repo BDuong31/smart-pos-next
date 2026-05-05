@@ -3,10 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { Clock, ChefHat, CheckCircle2, Flame, AlertCircle, Timer, BellRing, Sparkles } from "lucide-react";
 import Image from "next/image";
+import { getOrderItemOptions, getOrderItems, getOrders, getOrderTables, updateOrder } from "@/apis/order";
+import { getTableById } from "@/apis/table";
+import { IOrderDetail, IOrderItemDetail, IOrderItemOptionDetail, IOrderTableDetail } from "@/interfaces/order";
+import { useSocket } from "@/context/socket-context";
+import { useToast } from "@/context/toast-context";
 
 // ================= TYPES =================
 // Thêm trạng thái 'new' cho các đơn vừa đẩy vào
-export type KitchenOrderStatus = "new" | "pending" | "processing";
+export type KitchenOrderStatus = "confirmed" | "processing" | "urgent";
 
 export interface IKitchenOrder {
     id: string;
@@ -23,36 +28,141 @@ export interface IKitchenOrder {
     }[];
 }
 
-const GENERATE_MOCK_DATA = (): IKitchenOrder[] => {
-    return Array.from({ length: 15 }).map((_, index) => ({
-        id: `ord-${index}`,
-        code: `ORD0${index + 1}`,
-        tableName: index % 5 === 0 ? `Takeaway` : `Bàn T1-0${index}`,
-        // Giả lập thời gian đẩy đơn vào khác nhau để test stopwatch
-        createdAt: new Date(Date.now() - Math.floor(Math.random() * 25) * 60000),
-        status: index === 0 ? "processing" : index < 3 ? "new" : "pending",
-        items: [
-            { id: "i1", productName: "Bò bít tết sốt tiêu đen", quantity: 2, options: ["Chín vừa"] },
-            { id: "i2", productName: "Salad cá ngừ", quantity: 1, note: "Không hành tây" },
-        ],
-    }));
-};
-
 export default function KitchenDashboard() {
+    const { socket, isConnected } = useSocket();
+    const { showToast } = useToast();
     const [orders, setOrders] = useState<IKitchenOrder[]>([]);
     const [currentTime, setCurrentTime] = useState(new Date());
 
+    const fetcheOrder = async (): Promise<IOrderDetail[] | []> => {
+        try {
+            const response = await getOrders({status: "confirmed"}, 1, 100);
+            if (response) {
+                return response.data;
+            }
+        } catch (error) {
+            console.error('Error fetching orders:', error);
+        }
+        return []
+    }
+
+    const fetcheOrderItem = async (orderId: string): Promise<IOrderItemDetail[] | []> => {
+        try {
+            const response = await getOrderItems({orderId}, 1, 100);
+            if (response) {
+                return response.data;
+            }
+        } catch (error) {
+            console.error('Error fetching order items:', error);
+        }
+        return []
+    }
+
+    const fetcheOrderItemOptions = async (orderItemId: string): Promise<IOrderItemOptionDetail[] | []> => {
+        try {
+            const response = await getOrderItemOptions({orderItemId}, 1, 100);
+            if (response) {
+                return response.data;
+            }
+        } catch (error) {
+            console.error('Error fetching order item options:', error);
+        }
+        return []
+    }
+
+    const fetcheOrderTable = async (orderId: string): Promise<IOrderTableDetail[] | []> => {
+        try {
+            const response = await getOrderTables({orderId}, 1, 100);
+            if (response) {
+                return response.data;
+            }
+        } catch (error) {
+            console.error('Error fetching table:', error);
+        }
+        return []
+    }
+
+    const fetchFullOrderData = async () => {
+        try {
+            const orders = await fetcheOrder();
+            
+            const fullOrders = await Promise.all(orders.map(async (order) => {
+                const [tables, items] = await Promise.all([
+                    fetcheOrderTable(order.id),
+                    fetcheOrderItem(order.id)
+                ]);
+
+                const tableName = tables.length > 0 ? tables[0].table.name : "Mang về";
+                // 3. Trong mỗi món, lấy thêm Options (Topping, Size...)
+                const mappedItems = await Promise.all(items.map(async (item) => {
+                    const optionsData = await fetcheOrderItemOptions(item.id);
+                    
+                    return {
+                        id: item.id,
+                        productName: item.productName,
+                        quantity: item.quantity,
+                        options: optionsData.map(opt => opt.optionName), 
+                        note: "" 
+                    };
+                }));
+
+                return {
+                    id: order.id,
+                    code: order.code,
+                    tableName: tableName,
+                    createdAt: new Date(order.createdAt),
+                    status: order.status as KitchenOrderStatus,
+                    items: mappedItems
+                };
+            }));
+
+            return fullOrders;
+        } catch (error) {
+            console.error("Lỗi tổng hợp dữ liệu:", error);
+            return [];
+        }
+    };
     useEffect(() => {
-        const data = GENERATE_MOCK_DATA();
-        setOrders(data);
+        const loadData = async () => {
+            const data = await fetchFullOrderData();
+            setOrders(data);
+            console.log("Dữ liệu đầy đủ của các bàn:", data);
+        };
+
+        loadData();
+
+
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        
         return () => clearInterval(timer);
     }, []);
 
-    const handleAction = (orderId: string, currentStatus: KitchenOrderStatus) => {
-        if (currentStatus === "new" || currentStatus === "pending") {
+    useEffect(() => {
+        if (!socket) return;
+
+        // Lắng nghe sự kiện đúng với tên 'order:confirmed' từ server
+        socket.on('order:confirmed', (newOrder) => {
+        console.log('Có đơn hàng mới cho bếp:', newOrder);
+        
+        // Cập nhật danh sách đơn hàng hiển thị trên màn hình
+        setOrders((prevOrders) => [newOrder, ...prevOrders]);
+        
+        // Thông báo âm thanh hoặc toast
+        showToast("Có đơn hàng mới cần chế biến!", "success");
+        });
+
+        // Quan trọng: Cleanup để tránh duplicate listener khi chuyển trang
+        return () => {
+        socket.off('order:confirmed');
+        };
+    }, [socket]);
+
+    const handleAction = async (orderId: string, currentStatus: KitchenOrderStatus) => {
+        if (currentStatus === "confirmed" || currentStatus === "urgent") {
             setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: "processing" } : o));
+            await updateOrder(orderId, { status: "processing" })
         } else {
+            await updateOrder(orderId, { status: "served" })
             setOrders(prev => prev.filter(o => o.id !== orderId));
         }
     };
@@ -73,20 +183,10 @@ export default function KitchenDashboard() {
         // Cấu hình ngưỡng cảnh báo
         const isUrgent = elapsedMins >= 20;
         const isProcessing = order.status === "processing";
-        const isNew = order.status === "new";
+        const isNew = order.status === "confirmed";
 
         const styleConfig = {
-            new: {
-                wrapper: "border-[#3B82F6] ring-4 ring-[#3B82F6]/10 shadow-md",
-                header: "bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] text-white",
-                title: "text-white",
-                badge: "bg-white/20 text-white",
-                timer: "bg-white/20 text-white border border-white/30",
-                button: "bg-[#3B82F6] hover:bg-[#2563EB] text-white",
-                btnIcon: <Sparkles size={20} className="animate-spin-slow" />,
-                btnText: "NHẬN ĐƠN MỚI"
-            },
-            pending: {
+            confirmed: {
                 wrapper: "border-[#D1D5DB] border shadow-sm",
                 header: "bg-white border-b border-[#E5E7EB]",
                 title: "text-[#4B5563]",
@@ -119,8 +219,8 @@ export default function KitchenDashboard() {
         };
 
         // Ưu tiên hiển thị trạng thái
-        let currentState: "new" | "pending" | "processing" | "urgent" = order.status;
-        if (isUrgent && !isProcessing) currentState = "urgent";
+        let currentState: KitchenOrderStatus = order.status;
+        if (isUrgent && !isProcessing) currentState = 'urgent';
         
         const theme = styleConfig[currentState];
 

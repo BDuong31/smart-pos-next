@@ -215,8 +215,8 @@ export default function ZoneView() {
       
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Quản lý danh mục</h1>
-          <p className="text-base-content/70 text-sm">Trang chủ &gt; Danh mục</p>
+          <h1 className="text-3xl font-bold">Quản lý khu vực</h1>
+          <p className="text-base-content/70 text-sm">Trang chủ &gt; Khu vực</p>
         </div>
         
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
@@ -224,7 +224,7 @@ export default function ZoneView() {
             <input 
               type="text" 
               className="grow border-none" 
-              placeholder="Tìm kiếm danh mục bằng tên" 
+              placeholder="Tìm kiếm khu vực bằng tên" 
               value={searchTerm}
               onChange={handleSearchChange}
             />
@@ -236,7 +236,7 @@ export default function ZoneView() {
             onClick={() => (document.getElementById('add_modal') as HTMLDialogElement)?.showModal()}
           >
             <Plus size={18} />
-            THÊM DANH MỤC MỚI
+            THÊM KHU VỰC MỚI
           </button>
         </div>
       </div>

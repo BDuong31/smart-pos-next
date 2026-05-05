@@ -21,12 +21,10 @@ const ProductList = ({ products, variants, length = 3 }: ProductListProps) => {
     )
 }
 
-const ProductListLaster = ({ products, variants, length }: ProductListProps) =>{
+const ProductListLaster = ({ products, variants }: ProductListProps) =>{
     return (
-        <div className={`grid xl:grid-cols-${length} lg:grid-cols-${length} grid-cols-${length} gap-8`}>
+        <div className={`grid xl:grid-cols-4 lg:grid-cols-4 grid-cols-2 gap-8`}>
             {products.map((product: IProductDetails) => (
-                console.log('Rendering ProductItem for product:', product.id),
-                console.log('With variants:', variants[product.id]),
                 <ProductItem key={product.id} product={product} variants={variants[product.id] ?? undefined} images={product.images} />
             ))}
         </div>
