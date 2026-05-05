@@ -7,6 +7,8 @@ import { IImage } from '@/interfaces/image';
 import { IVariant } from '@/interfaces/variant';
 import { getVariants } from '@/apis/variant';
 import { SplashScreen } from '../loading';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 
 type ProductItemProps = {
     product: IProductDetails;
@@ -14,6 +16,7 @@ type ProductItemProps = {
     images?: IImage[] | undefined;
 }
 const ProductItem = ( { product, variants, images }: ProductItemProps) => {
+    const user = useSelector((state: RootState) => state.user.user);
     const [isSoldOut, setIsSoldOut] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
     let imageUrl = '/logo.png';
@@ -23,6 +26,21 @@ const ProductItem = ( { product, variants, images }: ProductItemProps) => {
             break;
         }
     }
+
+    const track = async (action: 'view' | 'click' | 'add_to_cart') => {
+        // Chỉ chạy nếu đã đăng nhập
+        if (!user?.id) return;
+
+        fetch('/api/behavior', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            userId: user.id,
+            productId: product.id,
+            action
+        }),
+        });
+    };
 
     // React.useEffect(() => {
     //     if (variants) {
@@ -39,7 +57,13 @@ const ProductItem = ( { product, variants, images }: ProductItemProps) => {
     // }, [product.id, variants]);
 
     return (
-        <Link href={`/menu/${product.id}`} className='flex flex-col items-center'>
+        <Link 
+            href={`/menu/${product.id}`} 
+            onClick={() => {
+                track('click');
+            }} 
+            className='flex flex-col items-center'
+        >
             <div className='rounded-3xl relative'>
                 {loading ? (
                     <div className='lg:w-[302px] lg:h-[334px] w-[151px] h-[167px] flex items-center justify-center'>

@@ -1,39 +1,52 @@
-'use client'; // Bắt buộc vì có sử dụng hook của React
+'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { socket } from '../utils/socket'; // Import file socket.ts bạn đã tạo ở bước trước
+import { socket } from '../utils/socket';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 
-// Định nghĩa kiểu dữ liệu cho Context
 interface SocketContextType {
   socket: typeof socket | null;
   isConnected: boolean;
 }
 
-// Khởi tạo Context
 const SocketContext = createContext<SocketContextType>({
   socket: null,
   isConnected: false,
 });
 
-// Custom hook để các component khác gọi dùng cho tiện
 export const useSocket = () => useContext(SocketContext);
 
-// Provider bọc ngoài ứng dụng
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
-  const user = useSelector((state: RootState) => state.user.user)
+  const user = useSelector((state: RootState) => state.user.user);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    // 1. Kiểm tra nếu không có user thì ngắt kết nối ngay
+    if (!user?.id) {
+      if (socket.connected) socket.disconnect();
+      return;
+    }
+
+    // 2. Cập nhật query một cách trực tiếp vào engine của Socket.io
+    // Cách này đảm bảo khi socket.connect() chạy, nó mang theo userId và role mới nhất
     socket.io.opts.query = {
-      userId: user?.id, 
-      role: user?.role,
+      userId: user.id,
+      role: user.role,
     };
+
+    // 3. Nếu đang kết nối thì ngắt ra để buộc nó nhận query mới
+    if (socket.connected) {
+      socket.disconnect();
+    }
 
     socket.connect();
 
-    const onConnect = () => setIsConnected(true);
+    const onConnect = () => {
+      setIsConnected(true);
+      console.log("Connected to NestJS with Role:", user.role);
+    };
+    
     const onDisconnect = () => setIsConnected(false);
 
     socket.on('connect', onConnect);
@@ -44,7 +57,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       socket.off('disconnect', onDisconnect);
       socket.disconnect();
     };
-  }, [user]); 
+  }, [user?.id, user?.role]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

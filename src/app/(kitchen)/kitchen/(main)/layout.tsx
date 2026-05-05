@@ -6,6 +6,8 @@ import SideRightAdmin from '@/layout/side-right-admin';
 import ProtectedRoute from '@/components/protected-router';
 // import { ProfileProvider, useUserProfile } from '@/context/user-context';
 import { useRouter } from 'next/navigation';
+import { Socket } from 'socket.io-client';
+import { SocketProvider } from '@/context/socket-context';
 
 export default function RootLayout({
   children,
@@ -15,7 +17,9 @@ export default function RootLayout({
   return (
     <ProtectedRoute>
       {/* <ProfileProvider> */}
+      <SocketProvider>
         {children}
+      </SocketProvider>
       {/* </ProfileProvider> */}
     </ProtectedRoute>
   );

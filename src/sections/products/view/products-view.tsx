@@ -18,6 +18,8 @@ import { useToast } from '@/context/toast-context';
 import { randomInt } from 'node:crypto';
 import { IProductDetails } from '@/interfaces/product';
 import { getProductById } from '@/apis/product';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 
 interface ParamsProps {
     id: string
@@ -37,6 +39,7 @@ const RatingDefault: RatingDistribution = [
 ];
 export default function Product({id} : ParamsProps) {
     // const { showToast } = useToast()
+    const user = useSelector((state: RootState) => state.user.user);
     const [users, setUsers] = useState<IUserProfile[] | null>(null);
     const [relatedProducts, setRelatedProducts] = useState<IProductDetails[]>([]);
     const [checkedRating, setCheckedRating] = useState<boolean | null>(null);
@@ -148,6 +151,29 @@ export default function Product({id} : ParamsProps) {
     //         setLoading(false);
     //     }
     // }
+    const track = async (action: 'view' | 'click' | 'add_to_cart') => {
+        // Chỉ chạy nếu đã đăng nhập
+        if (!user?.id) return;
+        if (!ProductInfos) return;
+
+        fetch('/api/behavior', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            userId: user.id,
+            productId: ProductInfos.id,
+            action
+        }),
+        });
+    };
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            track('view');
+        }, 3000); 
+
+        return () => clearTimeout(timer); 
+    }, [user, ProductInfos])
 
     if (loading) {
         return <SplashScreen className='h-[80vh]' />;

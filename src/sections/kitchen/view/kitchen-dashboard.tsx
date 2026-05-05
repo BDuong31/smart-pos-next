@@ -8,6 +8,8 @@ import { getTableById } from "@/apis/table";
 import { IOrderDetail, IOrderItemDetail, IOrderItemOptionDetail, IOrderTableDetail } from "@/interfaces/order";
 import { useSocket } from "@/context/socket-context";
 import { useToast } from "@/context/toast-context";
+import { SplashScreen } from "@/components/loading";
+import { useSelector } from "react-redux";
 
 // ================= TYPES =================
 // Thêm trạng thái 'new' cho các đơn vừa đẩy vào
@@ -29,10 +31,12 @@ export interface IKitchenOrder {
 }
 
 export default function KitchenDashboard() {
+    const user = useSelector((state: RootState) => state.user.user);
     const { socket, isConnected } = useSocket();
     const { showToast } = useToast();
     const [orders, setOrders] = useState<IKitchenOrder[]>([]);
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [loading, setLoading] = useState(true);
 
     const fetcheOrder = async (): Promise<IOrderDetail[] | []> => {
         try {
@@ -83,6 +87,7 @@ export default function KitchenDashboard() {
     }
 
     const fetchFullOrderData = async () => {
+        loading && setLoading(true);
         try {
             const orders = await fetcheOrder();
             
@@ -120,6 +125,8 @@ export default function KitchenDashboard() {
         } catch (error) {
             console.error("Lỗi tổng hợp dữ liệu:", error);
             return [];
+        } finally {
+            setLoading(false);
         }
     };
     useEffect(() => {
@@ -138,24 +145,50 @@ export default function KitchenDashboard() {
     }, []);
 
     useEffect(() => {
-        if (!socket) return;
+        // CHỈ đăng ký khi socket đã báo isConnected = true
+        if (!socket || !isConnected) return;
 
-        // Lắng nghe sự kiện đúng với tên 'order:confirmed' từ server
-        socket.on('order:confirmed', (newOrder) => {
-        console.log('Có đơn hàng mới cho bếp:', newOrder);
-        
-        // Cập nhật danh sách đơn hàng hiển thị trên màn hình
-        setOrders((prevOrders) => [newOrder, ...prevOrders]);
-        
-        // Thông báo âm thanh hoặc toast
-        showToast("Có đơn hàng mới cần chế biến!", "success");
-        });
+        const handleOrder = async (newOrder: any) => {
+            // setOrders((prev) => [newOrder, ...prev]);
+            console.log("Đơn hàng mới nhận từ Socket:", newOrder);
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            const [tables, items] = await Promise.all([
+                    fetcheOrderTable(newOrder.id),
+                    fetcheOrderItem(newOrder.id)
+            ]);
 
-        // Quan trọng: Cleanup để tránh duplicate listener khi chuyển trang
-        return () => {
-        socket.off('order:confirmed');
+            const tableName = tables.length > 0 ? tables[0].table.name : "Mang về";
+                // 3. Trong mỗi món, lấy thêm Options (Topping, Size...)
+            const mappedItems = await Promise.all(items.map(async (item) => {
+                const optionsData = await fetcheOrderItemOptions(item.id);
+                    
+                return {
+                    id: item.id,
+                    productName: item.productName,
+                    quantity: item.quantity,
+                    options: optionsData.map(opt => opt.optionName), 
+                    note: "" 
+                };
+            }));
+
+            const fullOrder: IKitchenOrder = {
+                id: newOrder.id,
+                code: newOrder.code,
+                tableName: tableName,
+                createdAt: new Date(newOrder.createdAt),
+                status: "confirmed",
+                items: mappedItems
+            };
+            setOrders((prev) => [fullOrder, ...prev]);
+            showToast("Đơn hàng mới đã được đặt!", "success");
         };
-    }, [socket]);
+
+        socket.on('order:confirmed', handleOrder);
+
+        return () => {
+            socket.off('order:confirmed', handleOrder);
+        };
+    }, [isConnected]); // Chạy lại mỗi khi isConnected thay đổi
 
     const handleAction = async (orderId: string, currentStatus: KitchenOrderStatus) => {
         if (currentStatus === "confirmed" || currentStatus === "urgent") {
@@ -295,10 +328,10 @@ export default function KitchenDashboard() {
                         <Image src="https://baso.id.vn/basoblack.png" alt="Logo" width={100} height={40} priority />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black text-gray-900 tracking-tight uppercase leading-none">Bếp Trung Tâm</h1>
+                        <h1 className="text-2xl font-black text-gray-900 tracking-tight uppercase leading-none"> {user?.fullName || ''}</h1>
                         <div className="flex items-center gap-3 mt-2">
                             <span className="flex items-center gap-1.5 text-xs font-black text-blue-700 bg-blue-100 px-3 py-1 rounded-full border border-blue-200 uppercase">
-                                <Sparkles size={12}/> Mới: {orders.filter(o => o.status === "new").length}
+                                <Sparkles size={12}/> Mới: {orders.filter(o => o.status === "confirmed").length}
                             </span>
                             <span className="flex items-center gap-1.5 text-xs font-black text-orange-700 bg-orange-100 px-3 py-1 rounded-full border border-orange-200 uppercase">
                                 <Flame size={12}/> Đang nấu: {orders.filter(o => o.status === "processing").length}
@@ -318,6 +351,9 @@ export default function KitchenDashboard() {
             </header>
 
             {/* VÙNG HIỂN THỊ 2 HÀNG CUỘN NGANG */}
+            {loading ? (
+                <SplashScreen />
+            ) : (
             <main className="h-[88%] w-full overflow-x-auto overflow-y-hidden custom-scrollbar">
                 <div className="grid grid-rows-2 grid-flow-col gap-6 h-full pb-4" 
                      style={{ gridAutoColumns: 'minmax(360px, 1fr)' }}>
@@ -331,6 +367,7 @@ export default function KitchenDashboard() {
                     )}
                 </div>
             </main>
+            )}
 
             <style jsx global>{`
                 .custom-scrollbar::-webkit-scrollbar { height: 6px; }

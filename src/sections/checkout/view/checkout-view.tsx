@@ -199,7 +199,7 @@ export default function CheckoutView() {
             // Bước 2: Tạo Order Items và Order Item Options
             for (const item of cartItem) {
                 const variant = variantMap[item.variantId];
-                const basePrice = variant?.priceDiff || item.product?.basePrice || 0;
+                const basePrice = (variant?.priceDiff + item.product?.basePrice) || 0;
                 const optionsPrice = optionMap[item.id]?.reduce((acc, opt) => acc + (opt.optionItem?.priceExtra || 0), 0) || 0;
                 const finalUnitPrice = basePrice + optionsPrice; 
 
@@ -210,6 +210,7 @@ export default function CheckoutView() {
                     variantId: item.variantId,
                     quantity: item.quantity,
                     productName: item.product.name,
+                    price: basePrice,
                 };
                 const createdOrderItemId = await createOrderItem(orderItemData); // Trả về OrderItem ID
 

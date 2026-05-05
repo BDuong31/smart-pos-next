@@ -34,6 +34,7 @@ const ProductDetails = ( {product}: ProductDetailProps) => {
     // const { userProfile } = useUserProfile();
     // const { isAuthenticated } = useAuth();
     // const { cart, refeshCart, refeshCartItem } = useCart();
+    const user = useSelector((state: RootState) => state.user.user);
     const dispatch = useDispatch<AppDispatch>();
     const cart = useSelector((state: RootState) => state.cart.cart);
     const { showToast } = useToast();
@@ -96,6 +97,22 @@ const ProductDetails = ( {product}: ProductDetailProps) => {
             console.error('Error fetching option items:', error);
         }
     }
+
+    const track = async (action: 'view' | 'click' | 'add_to_cart') => {
+        // Chỉ chạy nếu đã đăng nhập
+        if (!user?.id) return;
+        if (!product) return;
+
+        fetch('/api/behavior', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            userId: user.id,
+            productId: product.id,
+            action
+        }),
+        });
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -164,6 +181,8 @@ const ProductDetails = ( {product}: ProductDetailProps) => {
             }
             ));
         }
+
+        track('add_to_cart');
         showToast('Đã thêm vào giỏ hàng!', 'success');
         console.log("Cart Payload:", { variant: selectedVariant, options: selectedOptions });
         dispatch(fetchCartByUserId(cart?.userId));

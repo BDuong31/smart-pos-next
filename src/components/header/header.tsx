@@ -13,6 +13,7 @@ import CartRegular from "../icons/cart";
 import ClipboardRegular from "../icons/clipboard";
 import LogoutRegular from "../icons/logout";
 import { LogIn, UserPlus } from "lucide-react";
+import { logout } from "@/store/slices/authSlice";
 
 const Header = () => {
     const dispatch = useDispatch<AppDispatch>();
@@ -125,8 +126,13 @@ const Header = () => {
                                     </Link>
                                 </li>
                                 <li>
-                                    <button>
-                                        <LogoutRegular /> Đăng xuất
+                                    <button
+                                        onClick={() => {
+                                            dispatch(logout());
+                                            window.location.href = '/login';
+                                        }}
+                                    >
+                                        <LogoutRegular/> Đăng xuất
                                     </button>
                                 </li>
                             </>

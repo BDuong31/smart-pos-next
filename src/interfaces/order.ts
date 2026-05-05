@@ -73,6 +73,7 @@ export interface IOrderItemCreate {
     variantId: string,
     productName: string,
     quantity: number,
+    price: number,
 }
 
 export interface IOrderItemUpdate {

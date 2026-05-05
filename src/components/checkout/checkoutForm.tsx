@@ -18,7 +18,7 @@ type CheckoutFormProps = {
 
 const CheckoutForm = ({ onSubmit }: CheckoutFormProps) => {
   const user = useSelector((state: RootState) => state.user.user);
-  const tableId = localStorage.getItem('customer_table_id');
+  const tableId = sessionStorage.getItem('customer_table_id');
   const { showToast } = useToast();
 
   const [formData, setFormData] = useState<CheckoutFormData>({

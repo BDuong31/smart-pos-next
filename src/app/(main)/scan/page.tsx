@@ -37,7 +37,7 @@ const ScanPage = () => {
   const handleLogicByStatus = (tableStatus: string, id: string) => {
     switch (tableStatus) {
       case 'available': // BÀN TRỐNG
-        localStorage.setItem('customer_table_id', id);
+        sessionStorage.setItem('customer_table_id', id);
         router.push('/menu');
         break;
 
@@ -49,7 +49,7 @@ const ScanPage = () => {
           okText: 'Xác nhận ngồi đây',
           cancelText: 'Quay lại',
           onOk: () => {
-            localStorage.setItem('customer_table_id', id);
+            sessionStorage.setItem('customer_table_id', id);
             router.push('/menu');
           },
           onCancel: () => router.push('/') // Hoặc trang chủ của quán
