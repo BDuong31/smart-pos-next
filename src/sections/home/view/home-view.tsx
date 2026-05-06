@@ -18,10 +18,16 @@ import { getCategories } from "@/apis/category";
 // import { getAllRatings } from "@/apis/rating";
 import { getVariants } from "@/apis/variant";
 import { set } from "zod";
-import { getProducts } from "@/apis/product";
+import { getProducts, getListProductIds } from "@/apis/product";
 import { IVariant } from "@/interfaces/variant";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+import { getRecommend } from "@/apis/ai";
+
 export default function HomeView() {
     // const { userProfile, loading } = useUserProfile()
+    const user = useSelector((state: RootState) => state.user.user);
+    const [recommendProductId, setRecommendProductId] = useState<{product_id: string, score: number}[]>([]);
     const [products, setProducts] = useState<IProductDetails[]>([]);
     const [latestProducts, setLatestProducts] = useState<IProductDetails[]>([]);
     const [variants, setVariants] = useState<Record<string, IVariant[]>>({});
@@ -31,6 +37,25 @@ export default function HomeView() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
+
+    const fetcherRecommendProduct = async () => {
+        setIsLoading(true)
+        try {
+            if (!user?.id) {
+                const response = await getRecommend('default')
+                setRecommendProductId(response.recommendations)
+            } else {
+                const response = await getRecommend(user.id)
+                setRecommendProductId(response.recommendations)
+            }
+        } catch (error) {
+            console.error('Error fetching recommend products:', error);
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+
 
     // Hàm tính toán số mục hiển thị dựa trên kích thước màn hình
     const calculateItemsPerPage = () => {
@@ -49,6 +74,18 @@ export default function HomeView() {
     // State để lưu số mục hiển thị
     const [itemsPerPage, setItemsPerPage] = useState(calculateItemsPerPage());
 
+    const fetcheProductIds = async () => {
+        setIsLoading(true)
+        try {
+            const productIds = recommendProductId.map((item) => item.product_id);
+            const response = await getListProductIds(productIds)
+            setLatestProducts(response.data.slice(0, 4))
+        } catch (error) {
+            console.error('Error fetching products:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
 
     // Hàm lấy danh sách sản phẩm
     const fetcherProducts = async () => {
@@ -105,11 +142,19 @@ export default function HomeView() {
         fetcherCategory();
     }, []);
 
-    // const reviewSection = reviews.slice(0, calculateItemsPerPage());
+    React.useEffect(() => {
+        fetcherRecommendProduct()
+    }, [user]);
 
     React.useEffect(() => {
-        setLatestProducts(products.slice(0, 4));
-    }, [products]);
+        fetcheProductIds();
+    }, [recommendProductId]);
+
+    // const reviewSection = reviews.slice(0, calculateItemsPerPage());
+
+    // React.useEffect(() => {
+    //     setLatestProducts(products.slice(0, 4));
+    // }, [products]);
 
     useEffect(() => {
         const fetchAllVariants = async () => {
@@ -198,14 +243,14 @@ export default function HomeView() {
                 <Link href={'/newdrops'} className='uppercase bg-blue text-white py-2 px-6 text-[14px] rounded-lg'>Đặt món ngay</Link>
             </div>
             <div className='absolute top-14 left-0 z-10 text-gray hidden sm:block'>
-            <h2 className='[writing-mode:vertical-lr] rotate-180 px-4 py-4 bg-darkgrey rounded-l-xl lg:text-base text-xs'>Món ngon nổi bật</h2>
+            <h2 className='[writing-mode:vertical-lr] rotate-180 px-4 py-4 bg-darkgrey rounded-l-xl lg:text-base text-xs'>Món ăn mới ra mắt</h2>
             </div>
         </div>
         <div>
             <div className="pt-20 flex m-auto 3xl:max-w-[1500px] 2xl:max-w-[1450px] xl:max-w-[90%] lg:max-w-[90%] max-w-[95%]">
-                <h1 className='2xl:text-[74px] xl:text-[60px] lg:text-[50px] md:text-[40px] sm:text-[30px] text-[24px] font-semibold uppercase flex-1 2xl:leading-[70px] xl:leading-[60px] lg:leading-[50px] md:leading-[40px] sm:leading-[30px] text-darkgrey'>Đừng bỏ lỡ những món mới ra mắt</h1>
+                <h1 className='2xl:text-[74px] xl:text-[60px] lg:text-[50px] md:text-[40px] sm:text-[30px] text-[24px] font-semibold uppercase flex-1 2xl:leading-[70px] xl:leading-[60px] lg:leading-[50px] md:leading-[40px] sm:leading-[30px] text-darkgrey'>{user ? 'Món ăn dành cho bạn' : 'Đừng bỏ lỡ những món ngon'}</h1>
                 <div className="flex-1 text-right self-end">
-                    <Link className="bg-blue uppercase text-white py-3 px-6 text-[14px] rounded-lg" href={'/newdrops'}>Xem thêm</Link>
+                    <Link className="bg-blue uppercase text-white py-3 px-6 text-[14px] rounded-lg" href={'/menu'}>Xem thêm</Link>
                 </div>
             </div>
             <div className="py-12 m-auto 3xl:max-w-[1500px] 2xl:max-w-[1450px] xl:max-w-[90%] lg:max-w-[90%] max-w-[95%]">

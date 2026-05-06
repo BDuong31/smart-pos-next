@@ -22,6 +22,16 @@ export const getProductById = async (id: string): Promise<IApiResponse<IProductD
     }
 }
 
+export const getListProductIds = async (ids: string[]): Promise<IApiResponse<IProductDetails[]>> => {
+    try {
+        const { data } = await axiosInstance.post(endpoints.product.getListProductIds, { ids });
+        return data;
+    } catch (error) {
+        console.error('Failed to fetch products:', error);
+        throw error;
+    }
+}
+
 export const createProduct = async (productData: IProductCreate): Promise<string> => {
   try {
     const { data } = await axiosInstance.post(endpoints.product.createProduct, productData);

@@ -74,7 +74,7 @@ export const getOptionItems = async (groupId?: string, name?: string | undefined
 
 
 // lấy danh sách option item theo nhiều id
-export const getListOptionItemIds = async (ids: string[]): Promise<IApiResponse<IOptionItem[]>> => {
+export const getListOptionItemIds = async (ids: string[]): Promise<IOptionItem[]> => {
     const { data } = await axiosInstance.post(endpoints.option.getListOptionItemIds, { ids });
     return data;
 }

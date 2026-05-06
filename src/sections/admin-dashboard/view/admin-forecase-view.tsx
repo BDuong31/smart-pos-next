@@ -2,334 +2,365 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend 
 } from "recharts";
 import { 
-  PackageSearch, Calendar, AlertTriangle, Coffee, PlusCircle, ChevronRight, 
-  TrendingUp, Activity, CheckCircle2, ShoppingCart, Box
+  AlertTriangle, Coffee, PlusCircle, Activity, CheckCircle2, ShoppingCart, Box, TrendingUp, Layers, Droplets, Package
 } from "lucide-react";
 import { SplashScreen } from "@/components/loading";
+
+// APIS
 import { getForecasts } from "@/apis/ai";
+import { getInventoryBatchByIds, getInventoryBatchs } from "@/apis/inventory-batch";
+import { getListRecipeIds, getRecipes } from "@/apis/recipe";
+import { IProductDetails } from "@/interfaces/product";
+import { IVariant } from "@/interfaces/variant";
+import { getListProductIds } from "@/apis/product";
+import { getListVariantIds, getVariantById } from "@/apis/variant";
+import { getListOptionItemIds } from "@/apis/option";
+import { IOptionItem } from "@/interfaces/option";
 
-// ==========================================
-// MOCK DATA GENERATOR (Dữ liệu phong phú & thực tế hơn)
-// ==========================================
-const generateMockData = (mode: "day" | "week" | "month") => {
-  const days = mode === "day" ? 1 : mode === "week" ? 7 : 30;
-  const productChartData = [];
-  const optionChartData = [];
-  const today = new Date('2026-03-31T00:00:00');
-  
-  // 1. Sinh dữ liệu 7 ngày lịch sử
-  for (let i = 7; i > 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const dateStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-    productChartData.push({ date: dateStr, actual: Math.floor(Math.random() * 80) + 120, forecast: null });
-    optionChartData.push({ date: dateStr, actual: Math.floor(Math.random() * 40) + 50, forecast: null });
-  }
+// --- LOGIC HELPERS ---
 
-  // 2. Sinh dữ liệu tương lai
-  for (let i = 0; i < days; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    const dateStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-    productChartData.push({ date: dateStr, actual: null, forecast: Math.floor(Math.random() * 70) + 140 + (i * 2) });
-    optionChartData.push({ date: dateStr, actual: null, forecast: Math.floor(Math.random() * 35) + 60 + (i * 1.5) });
-  }
+const transformChartData = (items: any[]) => {
+  const dateMap: Record<string, number> = {};
 
-  // 3. Mapping nguyên liệu tổng hợp (Data đa dạng)
-  const m = mode === "day" ? 1 : mode === "week" ? 7 : 30;
-  const rawIngredients = [
-    { id: "ing-1", name: "Cà phê hạt Robusta", category: "Pha chế", unit: "kg", demand: 2.5 * m, stock: 12, safety: 5, mappedFrom: "Product" },
-    { id: "ing-2", name: "Sữa tươi thanh trùng", category: "Pha chế", unit: "lít", demand: 15 * m, stock: 20, safety: 15, mappedFrom: "Product & Option" },
-    { id: "ing-3", name: "Trân châu đen", category: "Topping", unit: "kg", demand: 4.5 * m, stock: 3, safety: 5, mappedFrom: "Option" },
-    { id: "ing-4", name: "Trân châu trắng", category: "Topping", unit: "kg", demand: 3.0 * m, stock: 8, safety: 4, mappedFrom: "Option" },
-    { id: "ing-5", name: "Đào ngâm", category: "Topping", unit: "hộp", demand: 2.5 * m, stock: 5, safety: 4, mappedFrom: "Option" },
-    { id: "ing-6", name: "Đường nước", category: "Pha chế", unit: "can", demand: 1.2 * m, stock: 1, safety: 2, mappedFrom: "Product" },
-    { id: "ing-7", name: "Trà Ô long", category: "Pha chế", unit: "kg", demand: 1.8 * m, stock: 6, safety: 3, mappedFrom: "Product" },
-    { id: "ing-8", name: "Trà Lài", category: "Pha chế", unit: "kg", demand: 2.0 * m, stock: 4, safety: 3, mappedFrom: "Product" },
-    { id: "ing-9", name: "Syrup Vanilla", category: "Pha chế", unit: "chai", demand: 0.5 * m, stock: 3, safety: 2, mappedFrom: "Option" },
-    { id: "ing-10", name: "Bột Matcha", category: "Pha chế", unit: "kg", demand: 1.0 * m, stock: 0.5, safety: 1, mappedFrom: "Product" },
-    { id: "ing-11", name: "Ly nhựa 500ml", category: "Vật dụng", unit: "cái", demand: 150 * m, stock: 400, safety: 500, mappedFrom: "Product" },
-    { id: "ing-12", name: "Ống hút trân châu", category: "Vật dụng", unit: "cái", demand: 120 * m, stock: 1000, safety: 300, mappedFrom: "Option" },
-  ];
-
-  const ingredients = rawIngredients.map(ing => {
-    let toOrder = (ing.demand + ing.safety) - ing.stock;
-    return { ...ing, toOrder: Math.max(0, Number(toOrder.toFixed(1))) };
+  items.forEach((item) => {
+    const forecastArray = item.total_forecast || item.forecast || [];
+    forecastArray.forEach((f: any) => {
+      const dateStr = new Date(f.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+      dateMap[dateStr] = (dateMap[dateStr] || 0) + f.quantity;
+    });
   });
-
-  return { productChartData, optionChartData, ingredients };
+  return Object.entries(dateMap)
+    .map(([date, forecast]) => ({ date, forecast: Number(forecast.toFixed(1)) }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 };
 
-// ==========================================
-// THÀNH PHẦN UI NHỎ (Tiện ích)
-// ==========================================
-const KPICard = ({ title, value, icon: Icon, subtext, colorClass }: any) => (
-  <div className="bg-white p-5 rounded-2xl shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
-    <div className={`p-4 rounded-xl ${colorClass}`}>
-      <Icon size={24} />
-    </div>
-    <div>
-      <p className="text-sm text-slate-500 font-medium">{title}</p>
-      <h3 className="text-2xl font-bold text-slate-800">{value}</h3>
-      {subtext && <p className="text-xs text-slate-400 mt-0.5">{subtext}</p>}
-    </div>
-  </div>
-);
+const processGroupedForecast = (apiData: any, allRecipes: any[], inventoryBatches: any[]) => {
+  const ingredientSummary = new Map();
+  const productGroups: any[] = [];
+  const optionGroups: any[] = [];
 
-// ==========================================
-// MAIN DASHBOARD COMPONENT
-// ==========================================
+  const recipeLookup = allRecipes.reduce((acc: any, rec: any) => {
+    const key = rec.variantId ? `v-${rec.variantId}` : 
+                rec.productId ? `p-${rec.productId}` : 
+                `o-${rec.optionItemId}`;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(rec);
+    return acc;
+  }, {});
+
+  // Tính tồn kho từ lô hàng
+  const stockMap: Record<string, number> = {};
+  inventoryBatches.forEach(b => {
+    stockMap[b.ingredientId] = (stockMap[b.ingredientId] || 0) + (b.quantity || 0);
+  });
+
+  // 1. Xử lý nhóm Sản phẩm & Biến thể
+  apiData.products?.forEach((prod: any) => {
+    const variantsData: any[] = [];
+    prod.variants?.forEach((v: any) => {
+      const totalVQty = v.forecast.reduce((sum: number, f: any) => sum + f.quantity, 0);
+      const vRecipes = recipeLookup[`v-${v.variant_id}`] || recipeLookup[`p-${prod.product_id}`] || [];
+      
+      const consumed = vRecipes.map((rec: any) => {
+        const amountNeeded = rec.amount * totalVQty;
+        // Cộng dồn vào danh sách tổng nguyên liệu
+        if (!ingredientSummary.has(rec.ingredient.id)) {
+            ingredientSummary.set(rec.ingredient.id, { 
+                ...rec.ingredient, 
+                totalDemand: 0, 
+                stock: stockMap[rec.ingredient.id] || 0 
+            });
+        }
+        ingredientSummary.get(rec.ingredient.id).totalDemand += amountNeeded;
+        return { name: rec.ingredient.name, amount: amountNeeded, unit: rec.ingredient.unit };
+      });
+
+      variantsData.push({ id: v.variant_id, totalQty: totalVQty, consumed });
+    });
+    productGroups.push({ id: prod.product_id, variants: variantsData });
+  });
+
+  // 2. Xử lý nhóm Topping (Options)
+  apiData.options?.forEach((opt: any) => {
+    const totalOQty = opt.forecast.reduce((sum: number, f: any) => sum + f.quantity, 0);
+    const oRecipes = recipeLookup[`o-${opt.option_item_id}`] || [];
+    
+    const consumed = oRecipes.map((rec: any) => {
+      const amountNeeded = rec.amount * totalOQty;
+      if (!ingredientSummary.has(rec.ingredient.id)) {
+          ingredientSummary.set(rec.ingredient.id, { 
+              ...rec.ingredient, 
+              totalDemand: 0, 
+              stock: stockMap[rec.ingredient.id] || 0 
+          });
+      }
+      ingredientSummary.get(rec.ingredient.id).totalDemand += amountNeeded;
+      return { name: rec.ingredient.name, amount: amountNeeded, unit: rec.ingredient.unit };
+    });
+
+    optionGroups.push({ id: opt.option_item_id, totalQty: totalOQty, consumed });
+  });
+
+  return {
+    ingredients: Array.from(ingredientSummary.values()).map((ing: any) => ({
+        ...ing,
+        toOrder: Math.max(0, (ing.totalDemand + (ing.minStock || 0)) - ing.stock)
+    })),
+    productGroups,
+    optionGroups
+  };
+};
+
+// --- MAIN COMPONENT ---
+
 export default function InventoryForecastDashboard() {
   const [mode, setMode] = useState<"day" | "week" | "month">("week");
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState({ productChartData: [] as any[], optionChartData: [] as any[], ingredients: [] as any[] });
-  const [forecasts, Setforecasts] = useState<any[]>([]);
+  const [data, setData] = useState<any>(null);
+  const [products, setProducts] = useState<IProductDetails[]>([]);
+  const [variants, setVariants] = useState<IVariant[]>([]);
+  const [options, setOptions] = useState<IOptionItem[]>([])
 
-  const fetcherForecasts = async (id: string) => {
+  const fetchAllData = async () => {
     try {
-        const response = await getForecasts(mode);
-        Setforecasts(response?.data || []);
-        console.log(response);
-    } catch (error) {
-        console.error("Error fetching forecasts:", error);
-    }
-  }
+      setLoading(true);
+      const [forecastRes, inventoryRes, recipesRes, productsRes, variantsRes, optionsRes] = await Promise.all([
+        getForecasts(mode),
+        getInventoryBatchByIds([]),
+        getListRecipeIds([]),
+        getListProductIds([]),
+        getListVariantIds([]),
+        getListOptionItemIds([])
+      ]);
 
-  useEffect(() => {
-    fetcherForecasts(mode);
-  }, [mode])
+      setProducts(productsRes?.data || []);
+      setVariants(variantsRes?.data || []);
+      setOptions(optionsRes || []);
 
-  useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => {
-      setData(generateMockData(mode));
+      if (forecastRes?.data) {
+        const processed = processGroupedForecast(forecastRes.data, recipesRes?.data || [], inventoryRes?.data || []);
+        setData({
+          ...processed,
+          productChart: transformChartData(forecastRes.data.products || []),
+          optionChart: transformChartData(forecastRes.data.options || [])
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
       setLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [mode]);
+    }
+  };
 
-  // Derived states cho KPIs
-  const alertCount = useMemo(() => data.ingredients.filter(i => i.toOrder > 0).length, [data.ingredients]);
-  const safeCount = data.ingredients.length - alertCount;
-  const totalDemandUnits = useMemo(() => data.ingredients.reduce((acc, curr) => acc + curr.demand, 0), [data.ingredients]);
-  
-  if (loading) {
-    return <SplashScreen className="h-[100vh]"/>
-  }
-  
+  useEffect(() => { fetchAllData(); }, [mode]);
+
+  if (loading || !data) return <SplashScreen className="h-[100vh]" />;
+
+  const alertCount = data.ingredients.filter((i: any) => i.toOrder > 0).length;
+
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-8 bg-slate-50 font-sans">
-      {/* 1. HEADER & CONTROLS */}
+    <div className="flex flex-col gap-6 p-4 md:p-8 bg-slate-50 min-h-screen font-sans">
+      
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
-            Kế hoạch Nhập hàng AI
+          <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+            <TrendingUp className="text-blue-600" /> Dự báo tiêu thụ và nhập hàng
           </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Dự báo bán ra và quy đổi nhu cầu nguyên liệu tự động.
-          </p>
+          <p className="text-slate-500 text-sm">Dự báo tiêu thụ và nhập hàng theo công thức và tồn kho, dự báo sẽ tự động cập nhật theo ngày/tuần/tháng.</p>
         </div>
         
-        <div className="bg-white p-1 rounded-xl shadow-sm border border-slate-200 inline-flex">
-          {(["day", "week", "month"] as const).map((m) => (
-            <button 
-              key={m}
-              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
-                mode === m ? "bg-darkgrey text-white shadow-md" : "text-slate-500 hover:text-white hover:bg-graymain"
-              }`}
-              onClick={() => setMode(m)}
-            >
-              {m === "day" ? "1 Ngày" : m === "week" ? "7 Ngày" : "30 Ngày"} tới
+        <div className="bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex gap-1 font-bold">
+          {["day", "week", "month"].map((m: any) => (
+            <button key={m} onClick={() => setMode(m)} className={`px-5 py-2 text-sm rounded-lg transition-all ${mode === m ? "bg-darkgrey text-white shadow-md" : "text-slate-400 hover:bg-gray-100"}`}>
+              {m === "day" ? "24 Giờ" : m === "week" ? "7 Ngày" : "30 Ngày"}
             </button>
           ))}
         </div>
       </div>
 
-      {/* 2. KPI CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <KPICard 
-          title="Nguyên liệu cần nhập" 
-          value={`${alertCount} loại`} 
-          subtext="Dưới mức an toàn"
-          icon={AlertTriangle} 
-          colorClass={alertCount > 0 ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"} 
-        />
-        <KPICard 
-          title="Đủ điều kiện xuất kho" 
-          value={`${safeCount} loại`} 
-          subtext="Tồn kho đảm bảo"
-          icon={CheckCircle2} 
-          colorClass="bg-emerald-100 text-emerald-600" 
-        />
-        <KPICard 
-          title="Tổng lượng tiêu thụ dự kiến" 
-          value={Math.round(totalDemandUnits).toLocaleString('vi-VN')} 
-          subtext="Đơn vị tính quy đổi"
-          icon={Activity} 
-          colorClass="bg-blue-100 text-blue-600" 
-        />
+      {/* CHARTS SECTION */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <ChartBox title="Dự báo Sản phẩm & Biến thể" data={data.productChart} color="#f59e0b" icon={<Coffee size={18}/>} />
+        <ChartBox title="Dự báo Topping & Options" data={data.optionChart} color="#8b5cf6" icon={<PlusCircle size={18}/>} />
       </div>
 
-      {/* 3. CHARTS GRID */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 relative">
-        <div className="bg-white p-6 rounded-2xl shadow-sm">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="p-2 bg-amber-100 rounded-lg text-amber-600"><Coffee size={20} /></div>
-            <div>
-              <h2 className="text-base font-bold text-slate-800">Xu hướng Món Chính</h2>
-              <p className="text-xs text-slate-400">Products & Variants</p>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
+        
+        <div className="xl:col-span-3 flex w-full gap-4">
+          <section className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 w-full lg:w-[65%] flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Package size={18} className="text-blue-500" /> Phân tích tiêu thụ Sản phẩm
+                </h2>
+                <span className="text-[10px] font-bold bg-slate-100 px-3 py-1 rounded-full text-slate-500">
+                    Dữ liệu trực tiếp
+                </span>
             </div>
-          </div>
-          <div className="h-60 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.productChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }}/>
-                <Area type="monotone" dataKey="actual" name="Đã bán" stroke="#94a3b8" strokeWidth={2} fillOpacity={0} />
-                <Area type="monotone" dataKey="forecast" name="AI Dự báo" stroke="#f59e0b" strokeWidth={3} fill="url(#colorProd)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
 
-        {/* CHART: OPTION */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg text-purple-600"><PlusCircle size={20} /></div>
-            <div>
-              <h2 className="text-base font-bold text-slate-800">Xu hướng Topping</h2>
-              <p className="text-xs text-slate-400">Options gọi thêm</p>
+            {/* Container chính với Scroll tự động mượt mà */}
+            <div className="space-y-6 max-h-[500px] overflow-y-auto pr-3 custom-scrollbar scroll-smooth">
+                {data.productGroups.map((pg: any) => (
+                    <div key={pg.id} className="group rounded-2xl border border-slate-50 p-2 last:border-none">
+                        {/* Header Tên Sản Phẩm */}
+                        <div className="flex items-center gap-3">
+                            <div className="w-1.5 h-6 bg-blue-600 rounded-full"></div>
+                            <h3 className="font-black text-slate-800 text-lg">
+                                {products?.find((p: any) => p.id === pg.id)?.name || pg.id}
+                            </h3>
+                            <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded uppercase">
+                                {pg.variants.length} Biến thể
+                            </span>
+                        </div>
+
+                        {/* Danh sách Biến thể hiển thị phẳng */}
+                        <div className="grid gap-4 ml-4">
+                            {pg.variants.map((v: any) => (
+                                <div key={v.id} className="bg-slate-50/50 pr-4">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Biến thể</p>
+                                            <p className="font-bold text-slate-700">
+                                                {variants?.find((x: any) => x.id === v.id)?.name || v.id.slice(0, 8)}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase">Dự báo bán</p>
+                                            <p className="font-black text-blue-600">{v.totalQty.toFixed(1)} <small className="font-normal text-[10px]">món</small></p>
+                                        </div>
+                                    </div>
+
+                                    {/* Nguyên liệu tiêu thụ của từng biến thể */}
+                                    <div className="flex flex-wrap gap-2 pt-3">
+                                        {v.consumed.map((c: any, i: number) => (
+                                            <div key={i} className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
+                                                <span className="text-[11px] font-medium text-slate-500">{c.name}</span>
+                                                <span className="text-[11px] font-black text-slate-900">{c.amount.toFixed(2)}{c.unit}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+                
+                {/* Placeholder khi trống */}
+                {data.productGroups.length === 0 && (
+                    <div className="text-center py-20 opacity-30 font-bold uppercase tracking-widest text-xs">
+                        Không có dữ liệu tiêu thụ
+                    </div>
+                )}
             </div>
-          </div>
-          <div className="h-60 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.optionChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorOpt" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }}/>
-                <Area type="monotone" dataKey="actual" name="Đã bán" stroke="#94a3b8" strokeWidth={2} fillOpacity={0} />
-                <Area type="monotone" dataKey="forecast" name="AI Dự báo" stroke="#8b5cf6" strokeWidth={3} fill="url(#colorOpt)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
 
-      {/* 4. TABLE SECTION WITH PROGRESS BARS */}
-      <div className="bg-white rounded-2xl shadow-sm mt-2 h-[500px]">
-        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <Box className="text-slate-400" size={20} />
-              Chi tiết Đề xuất Nhập kho
+            {/* CSS cho Scrollbar đẹp */}
+            <style jsx>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 5px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: #f8fafc;
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #94a3b8;
+                }
+            `}</style>
+        </section>
+          <section className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                <Layers size={18} /> Phân tích tiêu thụ Topping
             </h2>
-          </div>
-          <button className="btn bg-darkgrey text-white rounded-xl px-6 border-none flex items-center gap-2">
-            <ShoppingCart size={18} />
-            Tạo Phiếu Nhập ({alertCount})
-          </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto">
+              {data.optionGroups.map((og: any) => (
+                <div key={og.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="text-[10px] font-black text-slate-400 uppercase">
+                      {options?.find((x: IOptionItem) => x.id === og.id)?.name}
+                    </span>
+                    <span className="badge badge-sm font-bold bg-purple-100 text-purple-700">x{og.totalQty.toFixed(0)}</span>
+                  </div>
+                  <div className="space-y-1">
+                    {og.consumed.map((c: any, i: number) => (
+                      <div key={i} className="text-xs flex justify-between">
+                        <span className="text-slate-600">{c.name}</span>
+                        <span className="font-bold text-purple-600">{c.amount.toFixed(1)} {c.unit}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
 
-        <div className="relative overflow-y-auto h-[400px]">
-          {loading && (
-            <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center"></div>
-          )}
-          <table className="table w-full">
-            <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
-              <tr>
-                <th className="px-6 py-4 font-semibold">Nguyên liệu</th>
-                <th className="px-6 py-4 font-semibold text-center">Nhu cầu & Mức an toàn</th>
-                <th className="px-6 py-4 font-semibold text-left">Trạng thái Tồn kho</th>
-                <th className="px-6 py-4 font-semibold text-right rounded-tr-2xl">Đề xuất AI</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-sm">
-              {data.ingredients.map((row) => {
-                const totalNeeded = row.demand + row.safety;
-                const stockPercent = Math.min((row.stock / totalNeeded) * 100, 100);
-                const isCritical = row.toOrder > 0;
+        {/* TỔNG HỢP NGUYÊN LIỆU CUỐI CÙNG */}
+        <div className="xl:col-span-3">
+          <div className="bg-darkgrey text-white p-8 rounded-[2.5rem] shadow-2xl sticky top-6">
+            <div className="flex items-center gap-3 mb-8">
+              <Droplets className="text-blue-400" size={28} />
+              <h2 className="text-xl font-black uppercase tracking-tight">Tổng nguyên liệu</h2>
+            </div>
+            <div className="space-y-5 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              {data.ingredients.map((ing: any) => (
+                <div key={ing.id} className="group border-b border-white/10 pb-4 transition-all">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="font-bold text-sm group-hover:text-blue-400 transition-colors">{ing.name}</span>
+                    <span className="text-xl font-black text-blue-400">{ing.totalDemand.toFixed(1)} <small className="text-[10px] text-white/50">{ing.unit}</small></span>
+                  </div>
+                  <div className="flex justify-between text-[10px] uppercase font-bold text-white/40 mb-2">
+                    <span>Tồn: {ing.stock}</span>
+                    <span>Thiếu: {ing.toOrder > 0 ? ing.toOrder : 0}</span>
+                  </div>
+                  <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                    <div className={`h-full transition-all duration-1000 ${ing.toOrder > 0 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min((ing.stock / (ing.totalDemand + ing.minStock)) * 100, 100)}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
 
-                return (
-                  <tr key={row.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-slate-800 text-base">{row.name}</div>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className="text-xs text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-md">
-                          {row.category}
-                        </span>
-                        <span className="text-xs text-slate-400 border border-slate-200 px-2 py-0.5 rounded-md">
-                          Từ: {row.mappedFrom}
-                        </span>
-                      </div>
-                    </td>
-                    
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col items-center justify-center gap-1">
-                        <span className="text-slate-800 font-bold">{row.demand.toFixed(1)} <span className="text-xs font-normal text-slate-500">{row.unit}</span></span>
-                        <span className="text-xs text-slate-400">An toàn: {row.safety} {row.unit}</span>
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-4 w-64">
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="font-semibold text-slate-700">Có sẵn: {row.stock}</span>
-                        <span className="text-slate-500">Cần: {totalNeeded.toFixed(1)}</span>
-                      </div>
-                      {/* Custom Progress Bar */}
-                      <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                        <div 
-                          className={`h-2.5 rounded-full transition-all duration-500 ${isCritical ? 'bg-red-500' : 'bg-emerald-500'}`} 
-                          style={{ width: `${stockPercent}%` }}
-                        ></div>
-                      </div>
-                      {isCritical && (
-                        <p className="text-[11px] text-red-500 mt-1.5 flex items-center gap-1 font-medium">
-                          <AlertTriangle size={10} /> Thiếu {(totalNeeded - row.stock).toFixed(1)} {row.unit}
-                        </p>
-                      )}
-                    </td>
-
-                    <td className="px-6 py-4 text-right">
-                      {isCritical ? (
-                        <div className="inline-flex flex-col items-end">
-                          <span className="font-extrabold text-xl text-red-600 bg-red-50 px-3 py-1 rounded-lg">
-                            +{row.toOrder} <span className="text-sm font-medium">{row.unit}</span>
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="inline-flex items-center gap-1 text-emerald-600 font-medium bg-emerald-50 px-3 py-1.5 rounded-lg">
-                          <CheckCircle2 size={16} /> Đủ dùng
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+            <button className="btn btn-block bg-blue-600 hover:bg-blue-700 border-none text-white mt-10 rounded-2xl font-black h-14 shadow-lg shadow-blue-900/20">
+              <ShoppingCart size={20} /> TẠO PHIẾU NHẬP ({alertCount})
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
+// --- SUB-COMPONENT: CHART ---
+function ChartBox({ title, data, color, icon }: any) {
+  return (
+    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+      <div className="flex items-center gap-2 mb-6">
+        <div className="p-2 rounded-xl" style={{ backgroundColor: `${color}15`, color }}>{icon}</div>
+        <h3 className="font-black text-slate-800 text-sm uppercase tracking-wider">{title}</h3>
+      </div>
+      <div className="h-48 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data}>
+            <defs>
+              <linearGradient id={`grad-${color}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={color} stopOpacity={0.2}/>
+                <stop offset="95%" stopColor={color} stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+            <XAxis dataKey="date" tick={{fontSize: 10, fontWeight: 700, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+            <YAxis hide />
+            <RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+            <Area type="monotone" dataKey="forecast" stroke={color} strokeWidth={3} fill={`url(#grad-${color})`} animationDuration={1200} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}

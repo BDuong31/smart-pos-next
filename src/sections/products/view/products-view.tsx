@@ -17,9 +17,10 @@ import { check, set } from 'zod';
 import { useToast } from '@/context/toast-context';
 import { randomInt } from 'node:crypto';
 import { IProductDetails } from '@/interfaces/product';
-import { getProductById } from '@/apis/product';
+import { getListProductIds, getProductById } from '@/apis/product';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
+import { getRecommend } from '@/apis/ai';
 
 interface ParamsProps {
     id: string
@@ -41,6 +42,7 @@ export default function Product({id} : ParamsProps) {
     // const { showToast } = useToast()
     const user = useSelector((state: RootState) => state.user.user);
     const [users, setUsers] = useState<IUserProfile[] | null>(null);
+    const [recommendProductId, setRecommendProductId] = useState<{product_id: string, score: number}[]>([]);
     const [relatedProducts, setRelatedProducts] = useState<IProductDetails[]>([]);
     const [checkedRating, setCheckedRating] = useState<boolean | null>(null);
     const [totalPages, setTotalPages] = useState(0)
@@ -51,6 +53,35 @@ export default function Product({id} : ParamsProps) {
     const [ProductInfos, setProductInfos] = useState<IProductDetails | null>(null);
     const [imagesDefault, setImagesDefault] = useState<any>(null);
 
+    const fetcherRecommendProduct = async () => {
+        setLoading(true)
+        try {
+            if (!user?.id) {
+                const response = await getRecommend('default')
+                setRecommendProductId(response.recommendations)
+            } else {
+                const response = await getRecommend(user.id)
+                setRecommendProductId(response.recommendations)
+            }
+        } catch (error) {
+            console.error('Error fetching recommend products:', error);
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const fetcheProductIds = async () => {
+        setLoading(true)
+        try {
+            const productIds = recommendProductId.map((item) => item.product_id);
+            const response = await getListProductIds(productIds)
+            setRelatedProducts(response.data)
+        } catch (error) {
+            console.error('Error fetching products:', error);
+        } finally {
+            setLoading(false);
+        }
+    }
     const getProduct = async () => {
         try {
             setLoading(true);
@@ -175,6 +206,14 @@ export default function Product({id} : ParamsProps) {
         return () => clearTimeout(timer); 
     }, [user, ProductInfos])
 
+    React.useEffect(() => {
+        fetcherRecommendProduct()
+    }, [user])
+
+    React.useEffect(() => {
+        fetcheProductIds();
+    }, [recommendProductId])
+
     if (loading) {
         return <SplashScreen className='h-[80vh]' />;
     }
@@ -203,7 +242,7 @@ export default function Product({id} : ParamsProps) {
                     </div>
                 </div>
             </div>
-            {/* <ProductListLaster products={paginatedProducts} variants={relatedProductVariants} length={4}  />  */}
+            <ProductListLaster products={relatedProducts} variants={undefined} length={4}  /> 
 
             <div className='flex gap-2 py-4 justify-center'>
                 {

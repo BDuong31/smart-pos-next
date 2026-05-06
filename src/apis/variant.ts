@@ -22,6 +22,16 @@ export const getVariantById = async (id: string): Promise<IApiResponse<IVariant>
     }
 }
 
+export const getListVariantIds = async (ids: string[]): Promise<IApiResponse<IVariant[]>> => {
+    try {
+        const { data } = await axiosInstance.post(endpoints.variant.getListVariantIds, ids);
+        return data;
+    } catch (error) {
+        console.error('Failed to fetch variants by IDs:', error);
+        throw error;
+    }
+}
+
 export const createVariant = async (variantData: Partial<IVariant>): Promise<string> => {
   try {
     const { data } = await axiosInstance.post(endpoints.variant.createVariant, variantData);
